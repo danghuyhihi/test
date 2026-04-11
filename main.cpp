@@ -17,9 +17,7 @@ using namespace std;
 #define MAXTEMP 1001
 
 
-struct huy{
-    int age;
-};
+
 struct Date {
     int day;
     int month;
