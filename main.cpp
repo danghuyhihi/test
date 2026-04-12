@@ -151,6 +151,9 @@ int KiemTraMaVT(char ma[])
 int KiemTraMaNV(char ma[]){
 	return KiemTraMa(ma,11);
 }
+int KiemTraSoHoaDon(char ma[]){
+	return KiemTraMa(ma,11);
+}
 TREE TimVT(TREE root, const char maVT[]) {
     if (root == NULL) return NULL;
 
@@ -164,7 +167,13 @@ int KiemTraTrungMaVT(TREE root,  char maVT[])
 {
     return TimVT(root, maVT) != NULL;
 }
-
+NHANVIEN* TimNhanVienTheoMa(DSNHANVIEN ds, const char ma[]) {
+    for (int i = 0; i < ds.n; i++) {
+        if (strcmp(ds.nv[i]->MANV, ma) == 0)
+            return ds.nv[i];
+    }
+    return NULL;
+}
 
 int KiemTraTrungMANV(DSNHANVIEN ds, char ma[]) {
     for (int i = 0; i < ds.n; i++) {
@@ -331,6 +340,12 @@ TREE TaoNodeVT(VATTU x) {
     p->data = x;
     p->left = NULL;
     p->right = NULL;
+    return p;
+}
+NodeHD* TaoNodeHD(HOADON hd) {
+    NodeHD* p = new NodeHD;
+    p->data = hd;
+    p->next = NULL;
     return p;
 }
 
@@ -757,9 +772,133 @@ void ThemNhanVien(DSNHANVIEN &ds) {
 
     cout << "Them nhan vien thanh cong.\n";
 }
+void ThemHoaDonVaoCuoi(DSHD &dshd, HOADON hd) {
+    NodeHD* p = TaoNodeHD(hd);
 
+    if (dshd == NULL) {
+        dshd = p;
+        return;
+    }
 
+    NodeHD* q = dshd;
+    while (q->next != NULL)
+        q = q->next;
 
+    q->next = p;
+}
+int KiemTraTrungSoHD(DSNHANVIEN ds, const char sohd[]) {
+    for (int i = 0; i < ds.n; i++) {
+        DSHD p = ds.nv[i]->dshd;
+        while (p != NULL) {
+            if (strcmp(p->data.SoHD, sohd) == 0)
+                return 1;
+            p = p->next;
+        }
+    }
+    return 0;
+}
+void CapNhatTonKho(TREE root, HOADON hd) {
+    for (int i = 0; i < hd.dscthd.n; i++) {
+        TREE p = TimVT(root, hd.dscthd.ct[i].MAVT);
+
+        if (hd.Loai == 'N')
+            p->data.SLT += hd.dscthd.ct[i].Soluong;
+        else
+            p->data.SLT -= hd.dscthd.ct[i].Soluong;
+    }
+}
+void NhapMotCTHD(TREE root, HOADON &hd, int i) {
+    CT_HOADON &ct = hd.dscthd.ct[i];
+
+    while (true) {
+        cout << "Nhap ma vat tu: ";
+        cin.getline(ct.MAVT, MAX_MAVT + 1);
+        KiemTraMaVT(ct.MAVT);
+        UpperCase(ct.MAVT);
+        KiemTraTrungMaVT(root, ct.MAVT);
+        
+        TREE p = TimVT(root, ct.MAVT);
+        if (p == NULL) {
+            cout << "Khong ton tai vat tu\n";
+            continue;
+        }
+
+        cout << "Nhap so luong: ";
+        ct.Soluong = NhapSoNguyenKhongAm();
+
+        if (hd.Loai == 'X' && ct.Soluong > p->data.SLT) {
+            cout << "Khong du hang\n";
+            continue;
+        }
+
+        cout << "Nhap don gia: ";
+        ct.Dongia = NhapSoNguyenKhongAm();
+		
+        cout << "Nhap VAT: ";						
+        ct.VAT = NhapSoNguyenKhongAm();
+		
+        break;
+    }
+}
+void LapHoaDon(TREE root, DSNHANVIEN &dsnv) {
+    char maNV[MAX_MANV + 1];
+
+    cout << "Nhap ma nhan vien: ";
+    cin.getline(maNV, MAX_MANV + 1);
+    KiemTraMaNV(maNV);
+    UpperCase(maNV);
+	
+    NHANVIEN* nv = TimNhanVienTheoMa(dsnv, maNV);
+    if (nv == NULL) {
+        cout << "Khong tim thay nhan vien\n";
+        return;
+    }
+
+    HOADON hd;
+    hd.dscthd.n = 0;
+
+    // So hoa don
+    do {
+        cout << "Nhap so hoa don: ";
+        cin.getline(hd.SoHD, MAX_SOHD + 1);
+        KiemTraSoHoaDon(hd.SoHD);
+        UpperCase(hd.SoHD);
+
+        if (KiemTraTrungSoHD(dsnv, hd.SoHD)) {
+            cout << "So hoa don da ton tai\n";
+            continue;
+        }
+        break;
+    } while (true);
+
+    // Loai
+    do {
+        cout << "Nhap loai (N/X): ";
+        cin >> hd.Loai;
+        hd.Loai = toupper(hd.Loai);
+        cin.ignore(1000, '\n');
+
+    } while (hd.Loai != 'N' && hd.Loai != 'X');
+
+    // So chi tiet
+    int n;
+    cout << "Nhap so luong chi tiet hoa don: ";
+    n = NhapSoNguyenKhongAm();
+    hd.dscthd.n = n;
+
+    for (int i = 0; i < n; i++) {
+        cout << "\nChi tiet " << i + 1 << endl;
+        NhapMotCTHD(root, hd, i);
+    }
+
+    // cap nhat ton
+    CapNhatTonKho(root, hd);
+
+    // them vao ds hoa don
+    ThemHoaDonVaoCuoi(nv->dshd, hd);
+
+    cout << "Lap hoa don thanh cong\n";
+}
 
 
 
@@ -772,6 +911,7 @@ int main() {
     LoadNhanVienFromFile(dsnv);
     LoadVatTuFromFile(root);
 
+	HOADON hd;
     int choice;
     VATTU x;
     char ma[MAX_MAVT];
@@ -883,13 +1023,31 @@ int main() {
             cout<<"bam nut bat ky de ra menu: \n";
 	        cin.get();
             break;
-//
-//        case 8:
-//            XoaManHinh();
-//            TimNhanVienTheoTen(dsnv);
-//            break;
-		case 0: {
-            
+        case 8:
+        	LapHoaDon(root,dsnv);
+        	int next_choice;				
+        	cout<<"1. Them vat tu\n";						//12/4/2026 	16h
+        	cout<<"2. Xoa vat tu\n";						//ngay lap hd, cin next_choice
+        													//Them,sua,xoa VT(CTHD) chua oke
+        	cout<<"3. Xem vat tu\n";	
+        	while (cin.fail() || next_choice < 0 || next_choice > 8) {
+            cin.clear();
+            cin.ignore(1000, '\n');
+            cout << "Nhap sai. Vui long nhap lai (0-8): ";
+            cin >> next_choice;
+            }
+        	cin.ignore(1000, '\n');
+        	
+        	switch(next_choice){
+			
+        	case 1:
+        		NhapMotCTHD(root,hd,hd.dscthd.n);
+        		break;
+        	case 0:
+        		cout <<"thoat\n";
+        		break;
+			}
+		case 0: {  
             cout << "Thoat\n";
             break;
 }
