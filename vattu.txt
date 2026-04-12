@@ -1,3 +1,4 @@
+1|20|kg|100
 AT12|bida|cay|12
 VT01|But|cay|200
 VT03|sach|quyen|100
