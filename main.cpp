@@ -2,6 +2,7 @@
 #include <cstring>			//16h 11/04
 #include <iomanip>
 #include <fstream>
+
 using namespace std;
 
 #define MAX_MAVT 10
@@ -10,7 +11,7 @@ using namespace std;
 #define MAX_MANV 10
 #define MAX_HO 50
 #define MAX_TEN 20
-#define MAX_PHAI 4
+#define MAX_PHAI 10
 #define MAX_SOHD 20
 #define MAXCTHD 20
 #define MAXNV 500
@@ -90,6 +91,7 @@ void SaveVatTuToFile(TREE root, ofstream &f) {
 }
 
 
+
 void UpperCase(char s[])
 {
     int i;
@@ -104,7 +106,7 @@ void XoaKhoangTrangDauCuoi(char s[])
     while(strlen(s) > 0 && s[strlen(s) - 1] == ' ')
         s[strlen(s) - 1] = '\0';
 }
-void ChuanHoaKhoangTrang(char s[])
+void ChuanHoaKhoangTrang(char s[])				//
 {
     int i, j;
 
@@ -146,6 +148,9 @@ int KiemTraMaVT(char ma[])
 {
     return KiemTraMa(ma, 11);
 }
+int KiemTraMaNV(char ma[]){
+	return KiemTraMa(ma,11);
+}
 TREE TimVT(TREE root, const char maVT[]) {
     if (root == NULL) return NULL;
 
@@ -158,6 +163,15 @@ TREE TimVT(TREE root, const char maVT[]) {
 int KiemTraTrungMaVT(TREE root,  char maVT[])
 {
     return TimVT(root, maVT) != NULL;
+}
+
+
+int KiemTraTrungMANV(DSNHANVIEN ds, char ma[]) {
+    for (int i = 0; i < ds.n; i++) {
+        if (strcmp(ds.nv[i]->MANV, ma) == 0)
+            return 0;
+    }
+    return 1;
 }
 
 
@@ -242,6 +256,21 @@ int NhapSoNguyenKhongAm() {
         return x;
     }
 }
+void VietHoaChuCaiDau(char s[]) {
+    if (strlen(s) == 0) return;
+
+    s[0] = toupper((unsigned char)s[0]);
+
+    for (int i = 1; s[i] != '\0'; i++) {
+        s[i] = tolower((unsigned char)s[i]);
+
+        if (s[i - 1] == ' ')
+            s[i] = toupper((unsigned char)s[i]);
+    }
+}
+void ChuanHoaHoTen(char s[]) {
+    VietHoaChuCaiDau(s);
+}
 
 //------------------------------------------------------------------------------------------------------------------
 
@@ -291,6 +320,12 @@ void InitTree(TREE &root) {
     root = NULL;
 }
 
+void InitDSNV(DSNHANVIEN &ds) {
+    ds.n = 0;
+}
+
+
+
 TREE TaoNodeVT(VATTU x) {
     TREE p = new NodeVT;
     p->data = x;
@@ -314,6 +349,42 @@ int ThemVT(TREE &root, VATTU x) {
 
     if (cmp < 0) return ThemVT(root->left, x);
     return ThemVT(root->right, x);
+}
+void SaveNhanVienToFile(DSNHANVIEN ds) {
+    ofstream f("nhanvien.txt");
+
+    for (int i = 0; i < ds.n; i++) {
+        f << ds.nv[i]->MANV << '|'
+          << ds.nv[i]->HO << '|'
+          << ds.nv[i]->TEN << '|'
+          << ds.nv[i]->PHAI << endl;
+    }
+
+    f.close();
+}
+
+void LoadNhanVienFromFile(DSNHANVIEN &ds) {
+    ifstream f("nhanvien.txt");
+    if (!f.is_open()) return;
+
+    while (!f.eof()) {
+        NHANVIEN *p = new NHANVIEN;
+
+        f.getline(p->MANV, MAX_MANV + 1, '|');
+        f.getline(p->HO, MAX_HO + 1, '|');
+        f.getline(p->TEN, MAX_TEN + 1, '|');
+        f.getline(p->PHAI, MAX_PHAI + 1);
+
+        if (strlen(p->MANV) == 0) {
+            delete p;
+            break;
+        }
+
+        p->dshd = NULL;
+        ds.nv[ds.n++] = p;
+    }
+
+    f.close();
 }
 
 void LoadVatTuFromFile(TREE &root) {
@@ -530,7 +601,32 @@ void SapXepTheoTen(VATTU a[], int n) {   //bubble sort
         }
     }
 }
+void InDanhSachNhanVien(DSNHANVIEN ds) {
+    if (ds.n == 0) {
+        cout << "Danh sach nhan vien rong.\n";
+        return;
+    }
 
+    cout << left
+         << setw(12) << "Ma NV"
+         << setw(25) << "Ho"
+         << setw(15) << "Ten"
+         << setw(10) << "Phai"
+         << endl;
+
+    cout << setfill('-') << setw(62) << "" << endl;
+    cout << setfill(' ');
+
+    for (int i = 0; i < ds.n; i++) {
+        cout << left
+             << setw(12) << ds.nv[i]->MANV
+             << setw(25) << ds.nv[i]->HO
+             << setw(15) << ds.nv[i]->TEN
+             << setw(10) << ds.nv[i]->PHAI
+             << endl;
+    }
+
+}
 void InDanhSachVatTuTonKho(TREE root) {
     if (root == NULL) {
         cout << "Danh sach vat tu rong.\n";
@@ -553,9 +649,114 @@ void InDanhSachVatTuTonKho(TREE root) {
     }
 }
 
+int SoSanhNhanVien(NHANVIEN *a, NHANVIEN *b) {
+    int kq = strcmp(a->TEN, b->TEN);
+    if (kq != 0) return kq;
 
+    kq = strcmp(a->HO, b->HO);
+    if (kq != 0) return kq;
 
+    return strcmp(a->MANV, b->MANV);
+}
 
+void ThemNhanVien(DSNHANVIEN &ds) {
+    if (ds.n >= MAXNV) {
+        cout << "Danh sach nhan vien da day.\n";
+        return;
+    }
+
+    NHANVIEN *p = new NHANVIEN;
+
+    // Nhap ma NV
+    do {
+        cout << "Nhap ma nhan vien: ";
+        cin.getline(p->MANV, MAX_MANV);
+
+        ChuanHoaKhoangTrang(p->MANV);
+        UpperCase(p->MANV);
+
+        KiemTraMaNV(p->MANV);
+
+        if (!KiemTraTrungMANV(ds, p->MANV)) {
+            cout << "Ma nhan vien da ton tai.\n";
+            continue;
+        }
+
+        break;
+    } while (true);
+
+    // Nhap ho
+    do {
+        cout << "Nhap ho: ";
+        cin.getline(p->HO, MAX_HO);
+		KiemTraTenVatTu(p->HO);
+        ChuanHoaHoTen(p->HO);
+
+        if (strlen(p->HO) == 0) {
+            cout << "Ho khong duoc rong.\n";
+            continue;
+        }
+
+        break;
+    } while (true);
+
+    // Nhap ten
+    do {
+        cout << "Nhap ten: ";
+        cin.getline(p->TEN, MAX_TEN);
+		KiemTraTenVatTu(p->TEN);
+        ChuanHoaHoTen(p->TEN);
+
+        if (strlen(p->TEN) == 0) {
+            cout << "Ten khong duoc rong.\n";
+            continue;
+        }
+
+        break;
+    } while (true);
+
+    // Nhap phai
+    do {
+    	
+        cout << left << setw(15) << "Nhap phai:" << "1. Nam\n";
+		cout << left << setw(15) << ""           << "2. Nu\n";
+		cout << "Nhap lua chon: ";
+        cin.getline(p->PHAI, MAX_PHAI);
+		if(strcmp(p->PHAI,"1") == 0 )
+			strcpy(p->PHAI,"Nam");
+		else if(strcmp(p->PHAI,"2") == 0)
+			strcpy(p->PHAI,"Nu");
+		else{
+			
+			cout<<"Chon dung lua chon (1/2):\n";
+			continue;
+		}
+        ChuanHoaHoTen(p->PHAI);
+        break;
+    } while (true);
+
+    p->dshd = NULL;
+
+    // Tim vi tri chen
+    int pos = ds.n;
+
+    for (int i = 0; i < ds.n; i++) {
+        if (SoSanhNhanVien(p, ds.nv[i]) < 0) {
+            pos = i;	
+            break;
+        }
+    }
+
+    // Day mang sang phai
+    for (int i = ds.n; i > pos; i--) {
+        ds.nv[i] = ds.nv[i - 1];
+    }
+
+    ds.nv[pos] = p;
+    ds.n++;
+
+    cout << "Them nhan vien thanh cong.\n";
+}
 
 
 
@@ -566,6 +767,9 @@ void InDanhSachVatTuTonKho(TREE root) {
 int main() {
     TREE root;
     InitTree(root);
+    DSNHANVIEN dsnv;
+    InitDSNV(dsnv);
+    LoadNhanVienFromFile(dsnv);
     LoadVatTuFromFile(root);
 
     int choice;
@@ -573,6 +777,7 @@ int main() {
     char ma[MAX_MAVT];
 
     do {
+    	cout <<endl;
         cout << "====================================\n";
         cout << "         QUAN LY VAT TU              \n";
         cout << "====================================\n";
@@ -581,19 +786,22 @@ int main() {
         cout << "3. Sua vat tu\n";
         cout << "4. Xoa vat tu\n";
         cout << "5. In danh sach vat tu ton kho\n";
+        cout << "6. Them Nhan vien\n";
+        cout << "7. In Nhan Vien\n";
         cout << "0. Thoat\n";
-        cout << "Chon chuc nang (0-5): ";
+        cout << "Chon chuc nang (0-7): ";
         cin >> choice;  // SUA LAI : neu nhap choice la string thi tu dong thoat? -> bat nhap lai 0-5
-        while (cin.fail() || choice < 0 || choice > 5) {
+        while (cin.fail() || choice < 0 || choice > 8) {
                cin.clear();
              cin.ignore(1000, '\n');
-             cout << "Nhap sai. Vui long nhap lai (0-5): ";
+             cout << "Nhap sai. Vui long nhap lai (0-8): ";
              cin >> choice;
             }
         cin.ignore(1000, '\n');
 
         switch (choice) {
-        case 1:
+        case 1:{
+        	ofstream f("vattu.txt");
             XoaManHinh();
             InDanhSachVatTuTonKho(root);
             cout << "\n+---Nhap thong tin vat tu: ---+\n";
@@ -602,8 +810,10 @@ int main() {
                 cout << "Them thanh cong\n";
             else
                 cout << "Bi trung ma\n";
+            SaveVatTuToFile(root, f);
+            f.close();
             break;
-
+}
         case 2:{        // SUA LAI CASE 2: moi khi tim thay vat tu, chi in ra dung vattu do o danh sach'
         	XoaManHinh();
         	cout << "DANH SACH VAT TU HIEN CO\n";   
@@ -630,7 +840,7 @@ int main() {
                 cout << "Khong tim thay\n";
             }
             break;
-}
+	}
         case 3: {           // SUA LAI CASE 3 : moi khi muon' sua thi` hien ra danh sach VT
             XoaManHinh();
             cout << "DANH SACH VAT TU HIEN CO\n";
@@ -640,7 +850,7 @@ int main() {
 
             HieuChinhVT(root, x);
             break;
-}
+	}
         case 4:         // SUA LAI CASE4: moi khi mun xoa theo mavt thi phai in hoa? -> tu dong in hoa dong vua nhap
             cout << "Nhap ma can xoa: ";
             cin.getline(ma, 50);
@@ -655,11 +865,31 @@ int main() {
 		case 5:
             XoaManHinh();
 			InDanhSachVatTuTonKho(root);
+			cout<<"bam nut bat ky de ra menu: \n";
+	        cin.get();
             break;
+        case 6:
+	        XoaManHinh();
+	        InDanhSachNhanVien(dsnv);
+	        cout << "\n+---Nhap thong tin nhan vien: ---+\n";
+	        ThemNhanVien(dsnv);
+	        
+	        SaveNhanVienToFile(dsnv);
+	        break;
+
+        case 7:
+            XoaManHinh();
+            InDanhSachNhanVien(dsnv);
+            cout<<"bam nut bat ky de ra menu: \n";
+	        cin.get();
+            break;
+//
+//        case 8:
+//            XoaManHinh();
+//            TimNhanVienTheoTen(dsnv);
+//            break;
 		case 0: {
-            ofstream f("vattu.txt");
-            SaveVatTuToFile(root, f);
-            f.close();
+            
             cout << "Thoat\n";
             break;
 }
