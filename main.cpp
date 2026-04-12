@@ -573,15 +573,23 @@ int main() {
     char ma[MAX_MAVT];
 
     do {
-        cout << "\n===== MENU =====\n";
+        cout << "====================================\n";
+        cout << "         QUAN LY VAT TU              \n";
+        cout << "====================================\n";
         cout << "1. Them vat tu\n";
         cout << "2. Tim vat tu\n";
         cout << "3. Sua vat tu\n";
         cout << "4. Xoa vat tu\n";
         cout << "5. In danh sach vat tu ton kho\n";
         cout << "0. Thoat\n";
-        cout << "Chon: ";
-        cin >> choice;
+        cout << "Chon chuc nang (0-5): ";
+        cin >> choice;  // SUA LAI : neu nhap choice la string thi tu dong thoat? -> bat nhap lai 0-5
+        while (cin.fail() || choice < 0 || choice > 5) {
+               cin.clear();
+             cin.ignore(1000, '\n');
+             cout << "Nhap sai. Vui long nhap lai (0-5): ";
+             cin >> choice;
+            }
         cin.ignore(1000, '\n');
 
         switch (choice) {
@@ -598,7 +606,7 @@ int main() {
 
         case 2:{        // SUA LAI CASE 2: moi khi tim thay vat tu, chi in ra dung vattu do o danh sach'
         	XoaManHinh();
-        	cout << "DANH SACH VAT TU HIEN CO\n";
+        	cout << "DANH SACH VAT TU HIEN CO\n";   
         	InTieuDe();
 			InDongVatTu(root);
 
