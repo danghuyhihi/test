@@ -91,7 +91,13 @@ void SaveVatTuToFile(TREE root, ofstream &f) {
       << root->data.SLT << endl;
     SaveVatTuToFile(root->right, f);
 }
+void LuuFileVatTu(TREE root) {
+    ofstream f("vattu.txt");
+    if (!f.is_open()) return;
 
+    SaveVatTuToFile(root, f);
+    f.close();
+}
 
 
 void UpperCase(char s[])
@@ -876,17 +882,19 @@ void XoaVungSuaVT() {
 //
 void HieuChinhVT(TREE root) {
 	int start =0;
-    if (root == NULL) {
-        gotoxy(65, 2);
-        cout << "Danh sach vat tu rong. Nhan phim bat ky de quay lai...";
-        getch();
-        return;
+    char c;
+    char maVT[MAX_MAVT + 1];
+    int len;
+	if (root == NULL) {
+        gotoxy(65, 18); cout<<"danh sach rong, bam ECS de qua lai nhap VT!";
+        c = getch();
+        if(c==27){
+        	clearLine(65,18,50);
+        	return;
+		}
     }
 
     TREE p = NULL;
-    char maVT[MAX_MAVT + 1];
-    char c;
-    int len;
 
     int xMa  = 76, yMa  = 3;
     int xTen = 76, yTen = 5;
@@ -913,7 +921,7 @@ TIM_VAT_TU:
 
         if (c == 27) { // ESC
             XoaVungSuaVT();
-            gotoxy(65, 2);
+            gotoxy(65, 18);
             cout << "Da thoat hieu chinh vat tu.";
             return;
         }
@@ -1194,13 +1202,14 @@ MENU_SUA:
     }
 }
    
-void NodeThayThe(TREE &p, TREE &temp) {	
-    if (temp->left != NULL) {
-        NodeThayThe(p, temp->left);
+void NodeThayThe(TREE &nodeXoa, TREE &cayPhai) {
+    if (cayPhai->left != NULL) {
+        NodeThayThe(nodeXoa, cayPhai->left);
     } else {
-        p->data = temp->data;
-        p = temp;
-        temp = temp->right;
+        nodeXoa->data = cayPhai->data;
+        TREE q = cayPhai;
+        cayPhai = cayPhai->right;
+        delete q;
     }
 }
 
@@ -1212,17 +1221,21 @@ int RemoveVT(TREE &root, const char maVT[]) {
     if (cmp < 0) return RemoveVT(root->left, maVT);
     if (cmp > 0) return RemoveVT(root->right, maVT);
 
+    // tim thay node can xoa
     TREE p = root;
 
     if (root->left == NULL) {
         root = root->right;
-    } else if (root->right == NULL) {
+        delete p;
+    } 
+    else if (root->right == NULL) {
         root = root->left;
-    } else {
-        NodeThayThe(p, root->right);
+        delete p;
+    } 
+    else {
+        NodeThayThe(root, root->right);
     }
 
-    delete p;
     return 1;
 }
 
@@ -1752,50 +1765,124 @@ void LapHoaDon(TREE root, DSNHANVIEN &dsnv) {
 
     cout << "Lap hoa don thanh cong\n";
 }
+void XoaVatTuUI(TREE &root, int &start) {
+    char c;
+    char maVT[MAX_MAVT + 1];
+    int len;
+    int xMa = 76, yMa = 3;
+	if (root == NULL) {
+        gotoxy(65, 18); cout<<"danh sach rong, bam ECS de qua lai nhap VT!";
+        c = getch();
+        if(c==27){
+        	clearLine(65,18,50);
+        	return;
+		}
+    }
+    while (true) { // lap lai che do xoa cho toi khi bam ESC
+        
+        clearLine(65,1,50);
+        gotoxy(65, 1);
+        cout << "Nhap ma VT muon xoa (ESC de thoat):";
+        gotoxy(65, 3);
+        cout << "| Ma VT : [__________] |";
 
+        len = 0;
+        maVT[0] = '\0';
 
+        clearLine(76, 3, 10);
+        gotoxy(76, 3);
 
-int main() {
-	system("mode con cols=140 lines=40");
-    TREE root;
-    InitTree(root);
-    DSNHANVIEN dsnv;
-    InitDSNV(dsnv);
-    LoadNhanVienFromFile(dsnv);
-    LoadVatTuFromFile(root);
-
-	HOADON hd;
-    int choice;
-    VATTU x;
-    char ma[MAX_MAVT];
-
-    do {
-    	cout <<endl;
-        cout << "====================================\n";
-        cout << "         QUAN LY VAT TU              \n";
-        cout << "====================================\n";
-        cout << "1. Them vat tu\n";
-        cout << "2. Tim vat tu\n";
-        cout << "3. Sua vat tu\n";
-        cout << "4. Xoa vat tu\n";
-        cout << "5. In danh sach vat tu ton kho\n";
-        cout << "6. Them Nhan vien\n";
-        cout << "7. In Nhan Vien\n";
-        cout << "0. Thoat\n";
-        cout << "Chon chuc nang (0-7): ";
-        cin >> choice;  // SUA LAI : neu nhap choice la string thi tu dong thoat? -> bat nhap lai 0-5
-        while (cin.fail() || choice < 0 || choice > 8) {
-               cin.clear();
-             cin.ignore(1000, '\n');						//Suaưr lai
-             cout << "Nhap sai. Vui long nhap lai (0-8): ";
-             cin >> choice;
+        while (true) { // vong nhap tung ky tu
+            c = getch();
+			
+            if (c == 27) { // ESC
+            	XoaVungSuaVT();
+            	clearLine(65,18,20);
+ 				gotoxy(65,18);
+				cout<<"Da Thoat Xoa Vat TU";					  // xoa vung xoa vat tu
+                return;                     // thoat che do xoa
             }
-        cin.ignore(1000, '\n');
+            else if (c == 13) { // ENTER
+                maVT[len] = '\0';
 
-        switch (choice) {
-        case 1: {
-	    int start = 0;
-	    XoaManHinh();
+                if (len == 0) {
+                    clearLine(65, 18, 45);
+                    gotoxy(65, 18);
+                    cout << "Ma vat tu khong duoc rong.";
+                    break; // nhap lai ma moi
+                }
+
+                if (!KiemTraMaVT(maVT)) {
+                    clearLine(65, 18, 45);
+                    gotoxy(65, 18);
+                    cout << "Ma khong hop le.";
+                    break; // nhap lai
+                }
+
+                UpperCase(maVT);
+
+                if (!KiemTraTrungMaVT(root, maVT)) {
+                    clearLine(65, 18, 45);
+                    gotoxy(65, 18);
+                    cout << "Ma khong ton tai.";
+                    break; // nhap lai
+                }
+
+                // hoi xac nhan xoa
+                clearLine(65, 18, 45);
+                gotoxy(65, 18);
+                cout << "Ban co chac muon xoa? (Y/N): ";
+
+                char xn;
+                while (true) {
+                    xn = getch();
+                    xn = toupper((unsigned char)xn);
+
+                    if (xn == 'Y') {
+                        RemoveVT(root, maVT);
+                        InDanhSachVatTuTonKho(root, start);
+
+                        clearLine(65, 18, 45);
+                        gotoxy(65, 18);
+                        cout << "Da xoa vat tu.";
+
+                        break; // thoat vong hoi xac nhan
+                    }
+                    else if (xn == 'N' || xn == 27) {
+                        clearLine(65, 18, 45);
+                        gotoxy(65, 18);
+                        cout << "Da huy xoa.";
+                        break; // khong xoa
+                    }
+                }
+
+                break; // quay ra while lon de nhap ma moi
+            }
+            else if (c == 8) { // BACKSPACE
+                if (len > 0) {
+                    len--;
+                    maVT[len] = '\0';
+                    gotoxy(xMa + len, yMa);
+                    cout << ' ';
+                    gotoxy(xMa + len, yMa);
+                }
+            }
+            else if (isalnum((unsigned char)c)) {
+                if (len < MAX_MAVT) {
+                    c = toupper((unsigned char)c);
+                    maVT[len++] = c;
+                    maVT[len] = '\0';
+                    gotoxy(xMa + len - 1, yMa);
+                    cout << c;
+                }
+            }
+        }
+    }
+}
+void VT(TREE &root, VATTU &x){
+
+	 int start = 0;	    
+	 XoaManHinh();
 	    InDanhSachVatTuTonKho(root, start);
 	
 	    while (true) {
@@ -1815,18 +1902,27 @@ int main() {
 	            char f = getch();
 	            if (f == 60) { // F2
 	                VATTU x;
-	                char n = getch();
 	                while (true){
 		                if(!NhapThongTinVT(root, x)) break; 
 		                	ThemVT(root,x);
-		                	InDanhSachVatTuTonKho(root,start);	
+		                	InDanhSachVatTuTonKho(root,start);
+							LuuFileVatTu(root);	
 	        		}
 	            }
 	            else if(f==61){
 	            	HieuChinhVT(root);
+	            	LuuFileVatTu(root);
 	            	
 				}
-	    	}	
+				else if(f==62){	//F4
+					XoaVatTuUI(root,start);
+					InDanhSachVatTuTonKho(root,start);
+					LuuFileVatTu(root);
+				}
+				else if(f==63){
+					InDanhSachVatTuTonKho(root,start);
+				}
+	    	}
 	    	else if (c == 27) {
 	        	
 	            XoaManHinh();
@@ -1834,6 +1930,88 @@ int main() {
 	        }
 		}
 }
+
+void VeMenuChinh() {
+    XoaManHinh();
+
+    int x = 35;
+    int y = 8;
+
+    gotoxy(x, y);     cout << "========================";
+    gotoxy(x, y + 1); cout << "      QUAN LY KHO       ";
+    gotoxy(x, y + 2); cout << "========================";
+
+    gotoxy(x, y + 4); cout << "1. VAT TU";
+    gotoxy(x, y + 5); cout << "2. NHAN VIEN";
+    gotoxy(x, y + 6); cout << "3. HOA DON";
+
+    gotoxy(x, y + 8); cout << "ESC. THOAT";
+    gotoxy(x, y + 10); cout << "Chon chuc nang: ";
+}
+int MenuChinh() {
+    char c;
+
+    while (true) {
+        VeMenuChinh();
+
+        gotoxy(51, 18); // vi tri sau "Chon chuc nang: "
+        c = getch();
+
+        if (c == 27) { // ESC
+            return 0;
+        }
+
+        if (c == '1' || c == '2' || c == '3') {
+            cout << c;
+            return c - '0';
+        }
+
+        gotoxy(35, 20);
+        cout << "Chi duoc nhan 1, 2, 3 hoac ESC.";
+        Sleep(800);
+    }
+}
+void QuanLyChinh(TREE &root, DSNHANVIEN &dsnv,VATTU &x) {
+    while (true) {
+        int chon = MenuChinh();
+
+        if (chon == 0) {
+            XoaManHinh();
+            break;
+        }
+
+        switch (chon) {
+            case 1:
+                VT(root,x);      // bam ESC trong VT se quay lai menu
+                break;
+
+//            case 2:
+//                NV(dsnv);      // bam ESC trong NV se quay lai menu
+//                break;
+//
+//            case 3:
+//                HD(root, dsnv); // bam ESC trong HD se quay lai menu
+//                break;
+        }
+    }
+}
+
+int main() {
+	system("mode con cols=140 lines=40");
+    TREE root;
+    InitTree(root);
+    DSNHANVIEN dsnv;
+    InitDSNV(dsnv);
+    LoadNhanVienFromFile(dsnv);
+    LoadVatTuFromFile(root);
+
+	HOADON hd;
+    int choice;
+    VATTU x;
+    char ma[MAX_MAVT];
+	
+	QuanLyChinh(root,dsnv,x);
+    
 //        case 2:{        // SUA LAI CASE 2: moi khi tim thay vat tu, chi in ra dung vattu do o danh sach'
 //        	XoaManHinh();
 //        	cout << "DANH SACH VAT TU HIEN CO\n";   
@@ -1964,8 +2142,7 @@ int main() {
 //        default:
 //            cout << "Lua chon khong hop le\n";
 //        }
-	}
-    } while (choice != 0);
+
 
     return 0;
 }
