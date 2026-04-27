@@ -24,7 +24,7 @@ using namespace std;
 
 const int formX = 80; 	//o ve chitiet hoa don
 const int inputX = 94; //tro nhap chi tiet hoa don
-const int TB_X = 65;
+const int TB_X = 80;
 const int TB_Y = 20;
 const int TB_W = 60;
 
@@ -164,15 +164,59 @@ void clearArea(int x, int y, int w, int h) {
         }
     }
 }
+void VeKhungThongBao(int x, int y, int w) {
+    const char *title = " Notification ";
+    int titleLen = strlen(title);
+
+    if (w < titleLen + 6) return; // khung qua nho thi bo
+
+    // ===== dong tren =====
+    gotoxy(x, y);
+    cout << char(218); // goc tren trai
+
+    cout << char(196); // 1 net ngang ben trai title
+    cout << title;
+    cout << char(196); // 1 net ngang ben phai title
+
+    int daIn = 1 + 1 + titleLen + 1; 
+    for (int i = daIn; i < w - 1; i++) {
+        cout << char(196);
+    }
+
+    cout << char(191); // goc tren phai
+
+    // ===== dong giua =====
+    gotoxy(x, y + 1);
+    cout << char(179);
+    for (int i = 0; i < w - 2; i++) cout << ' ';
+    cout << char(179);
+
+    // ===== dong duoi =====
+    gotoxy(x, y + 2);
+    cout << char(192);
+    for (int i = 0; i < w - 2; i++) cout << char(196);
+    cout << char(217);
+}
+void XoaKhungThongBao(int x, int y, int w) {
+    for (int i = 0; i < 3; i++) {
+        clearLine(x, y + i, w);
+    }
+}
+void XoaThongBaoChung() {
+    for (int i = 0; i < 3; i++) {
+        clearLine(TB_X, TB_Y + i, TB_W);
+    }
+}
 void ThongBaoChung(const char *msg) {
-    clearLine(TB_X, TB_Y, TB_W);
-    gotoxy(TB_X, TB_Y);
+    XoaThongBaoChung();
+    VeKhungThongBao(TB_X, TB_Y, TB_W);
+
+    clearLine(TB_X + 1, TB_Y + 1, TB_W - 2);
+    gotoxy(TB_X + 2, TB_Y + 1);
     cout << msg;
 }
 
-void XoaThongBaoChung() {
-    clearLine(TB_X, TB_Y, TB_W);
-}
+
 int KiemTraMa(char s[], int max)
 {
     int i;
@@ -384,7 +428,7 @@ NodeHD* TaoNodeHD(HOADON hd) {
 }
 
 
-int ThemVT(TREE &root, VATTU x) {
+int ThemVTVaoCay(TREE &root, VATTU x) {
     if (root == NULL) {
         root = TaoNodeVT(x);
         return 1;
@@ -396,8 +440,8 @@ int ThemVT(TREE &root, VATTU x) {
         return 0; // trung ma
     }
 
-    if (cmp < 0) return ThemVT(root->left, x);
-    return ThemVT(root->right, x);
+    if (cmp < 0) return ThemVTVaoCay(root->left, x);
+    return ThemVTVaoCay(root->right, x);
 }
 void SaveNhanVienToFile(DSNHANVIEN ds) {
     ofstream f("nhanvien.txt");
@@ -536,24 +580,7 @@ void ThongBao1Dong(const char* msg) {
     gotoxy(x, y);
     cout << msg;
 }
-void ThongBaoBox(const char* msg) {
-    int x = 65;
-    int y = 17;
-    int w = 50;
 
-    // dong tren
-    gotoxy(x, y); 
-    for (int i = 0; i < w; i++) cout << '-';
-
-    // noi dung
-    clearLine(x, y + 1, w);
-    gotoxy(x + 2, y + 1);
-    cout << msg;
-
-    // dong duoi
-    gotoxy(x, y + 2);
-    for (int i = 0; i < w; i++) cout << '-';
-}
 void LoadNhanVienFromFile(DSNHANVIEN &ds) {
     ifstream f("nhanvien.txt");
     if (!f.is_open()) return;
@@ -602,7 +629,7 @@ void LoadVatTuFromFile(TREE &root) {
         if (p == NULL) continue;
         x.SLT = atoi(p);
 
-        ThemVT(root, x);
+        ThemVTVaoCay(root, x);
     }
 
     f.close();
@@ -643,6 +670,7 @@ bool NhapThongTinVT(TREE root, VATTU &x) {
 
             if (c == 27) { // ESC
                 clearArea(65,3,45,16);
+                XoaThongBaoChung();
                 return false;
             }
             else if (c == 13) { // ENTER
@@ -702,7 +730,7 @@ NHAP_TENVT:
             c = getch();
 
             if (c == 27) { // ESC
-            	ThongBaoChung("Da huy nhap vat tu.");
+            	XoaThongBaoChung();
                 return false;
             }
             else if (c == 13) { // ENTER
@@ -767,6 +795,7 @@ NHAP_DVT:
 
             if (c == 27) { // ESC
             	ThongBaoChung("Da huy nhap vat tu.");
+            	XoaThongBaoChung();
                 return false;
             }
             else if (c == 13) { // ENTER
@@ -832,6 +861,7 @@ NHAP_SLT:
 
             if (c == 27) { // ESC
                 ThongBaoChung("Da huy nhap vat tu.");
+                XoaThongBaoChung();
                 return false;
             }
             else if (c == 13) { // ENTER
@@ -869,7 +899,7 @@ NHAP_SLT:
 }
 
 
-void VeFormSuaVTCoBan() {
+void VeFormVT() {
     gotoxy(65, 3);  cout << "| Ma VT : [__________] |";
     gotoxy(65, 5);  cout << "| Ten VT: [____________________] |";
     gotoxy(65, 7);  cout << "| DVT   : [__________] |";
@@ -880,7 +910,7 @@ void XoaVungSuaVT() {
     clearArea(65, 1, 55, 22);
 }
 //
-void HieuChinhVT(TREE root) {
+void SuaVT(TREE root) {
 	int start =0;
     char c;
     char maVT[MAX_MAVT + 1];
@@ -890,6 +920,7 @@ void HieuChinhVT(TREE root) {
         c = getch();
         if(c==27){
         	clearLine(65,18,50);
+        	XoaThongBaoChung();
         	return;
 		}
     }
@@ -921,6 +952,7 @@ TIM_VAT_TU:
 
         if (c == 27) { // ESC
             XoaVungSuaVT();
+            XoaThongBaoChung();
             return;
         }
         else if (c == 13) { // ENTER
@@ -981,11 +1013,11 @@ TIM_VAT_TU:
     // Tim thay -> hien day du thong tin
 MENU_SUA:
     XoaVungSuaVT();
-
+	XoaThongBaoChung();
     gotoxy(65, 1);
     cout << "Thong tin vat tu can sua:";
 
-    VeFormSuaVTCoBan();
+    VeFormVT();
 
     clearLine(xMa,  yMa,  10);
     clearLine(xTen, yTen, 20);
@@ -1007,6 +1039,7 @@ MENU_SUA:
 
         if (c == 27) { // ESC
             XoaVungSuaVT();
+            XoaThongBaoChung();
             return;
         }
         else if (c == '1') {
@@ -1029,6 +1062,7 @@ MENU_SUA:
                     cout << p->data.TENVT;
 
                     clearLine(65, 17, 50);
+                    XoaThongBaoChung();
                     goto MENU_SUA;
                 }
                 else if (c == 13) { // ENTER
@@ -1109,7 +1143,7 @@ MENU_SUA:
                     clearLine(xDVT, yDVT, 10);
                     gotoxy(xDVT, yDVT);
                     cout << p->data.DVT;
-
+					XoaThongBaoChung();
                     clearLine(65, 17, 50);
                     goto MENU_SUA;
                 }
@@ -1188,13 +1222,13 @@ void NodeThayThe(TREE &nodeXoa, TREE &cayPhai) {
     }
 }
 
-int RemoveVT(TREE &root, const char maVT[]) {
+int XoaVT(TREE &root, const char maVT[]) {
     if (root == NULL) return 0;
 
     int cmp = strcmp(maVT, root->data.MAVT);
 
-    if (cmp < 0) return RemoveVT(root->left, maVT);
-    if (cmp > 0) return RemoveVT(root->right, maVT);
+    if (cmp < 0) return XoaVT(root->left, maVT);
+    if (cmp > 0) return XoaVT(root->right, maVT);
 
     // tim thay node can xoa
     TREE p = root;
@@ -1283,7 +1317,7 @@ void InDanhSachNhanVien(DSNHANVIEN ds, int start) {
 }
 
 
-bool ThemNhanVien(DSNHANVIEN &ds) {
+bool NhapThongTinNV(DSNHANVIEN &ds) {
     if (ds.n >= MAXNV) {
     	ThongBaoChung( "Danh sach nhan vien da day.");
         return false;
@@ -1335,6 +1369,7 @@ NHAP_MANV:
 
             if (c == 27) { // ESC
             	 clearArea(65,1,50,16);
+            	 XoaThongBaoChung();
                 delete p;
                 return false;
             }
@@ -1398,6 +1433,7 @@ NHAP_HO:
 
             if (c == 27) { // ESC
              	clearArea(65,1,50,16);
+             	XoaThongBaoChung();
                 delete p;
                 return false;
             }
@@ -1475,6 +1511,7 @@ NHAP_TEN:
 
             if (c == 27) { // ESC
              	clearArea(65,1,50,16);
+             	XoaThongBaoChung();
                 delete p;
                 return false;
             }
@@ -1548,6 +1585,7 @@ NHAP_PHAI:
         if (c == 27) { // ESC
             delete p;
             clearArea(65,1,50,16);
+            XoaThongBaoChung();
             return false;
         }
         else if (c == '1') {
@@ -1789,20 +1827,7 @@ void LoadHoaDonFromFile(DSNHANVIEN &ds) {
 
     f.close();
 }
-void ThongBaoTamDung(const char *msg) {
-    clearLine(TB_X, TB_Y, TB_W);
-    clearLine(TB_X, TB_Y + 1, TB_W);
 
-    gotoxy(TB_X, TB_Y);
-    cout << msg;
-    gotoxy(TB_X, TB_Y + 1);
-    cout << "Nhan phim bat ky de tiep tuc...";
-
-    getch();
-
-    clearLine(TB_X, TB_Y, TB_W);
-    clearLine(TB_X, TB_Y + 1, TB_W);
-}
 void ThongBaoHD(const char *msg) {
     ThongBaoChung(msg);
 }
@@ -1845,7 +1870,7 @@ bool NhapKyTuTaiO(int x, int y, int maxLen, char out[], bool chiSo, bool choDauC
     }
 }
 
-void VeKhungNhapHoaDonCoBan() {
+void VeFormHD() {
     clearArea(HD_FORM_X, 1, HD_FORM_W, HD_FORM_H);
     gotoxy(HD_FORM_X, 2);  cout << "| So HD : [____________________] |";
     gotoxy(HD_FORM_X, 4);  cout << "| Ngay  : [__] |";
@@ -2081,11 +2106,11 @@ bool ChonVatTuTonKhoPopup(TREE root, char maVTOut[]) {
     }
 }
 
-bool NhapThongTinDauHoaDonUI(DSNHANVIEN ds, NHANVIEN *nv, HOADON &hd) {
+bool NhapThongTinHD(DSNHANVIEN ds, NHANVIEN *nv, HOADON &hd) {
     strcpy(hd.MANV, nv->MANV);
     hd.dscthd.n = 0;
 
-    VeKhungNhapHoaDonCoBan();
+    VeFormHD();
     gotoxy(HD_FORM_X, 1);
     cout << "Nhap thong tin dau hoa don";
 
@@ -2249,7 +2274,7 @@ bool NhapThongTinDauHoaDonUI(DSNHANVIEN ds, NHANVIEN *nv, HOADON &hd) {
     return true;
 }
 
-void VeThongTinHoaDonDangLap(const NHANVIEN *nv, const HOADON &hd) {
+void VeThongTinHD(const NHANVIEN *nv, const HOADON &hd) {
     char ngay[20];
     DinhDangNgay(hd.Ngaylap, ngay);
 
@@ -2290,7 +2315,7 @@ void VeBangCTHD(const HOADON &hd) {
     gotoxy(2, y + 2 + MAXCTHD + 3); cout << "[F2] Them CT  [F3] Sua CT  [F4] Xoa CT  [F5] Tim VT  [F9] Luu  [ESC] Thoat";
 }
 
-bool ThemCTHDUI(TREE root, HOADON &hd) {
+bool NhapThongTinCTHD(TREE root, HOADON &hd) {
     if (hd.dscthd.n >= MAXCTHD) {
         ThongBaoHD("Hoa don da du 20 chi tiet.");
         return false;
@@ -2321,6 +2346,7 @@ bool ThemCTHDUI(TREE root, HOADON &hd) {
 
         if (c == 27) {
             clearArea(formX, 1, HD_FORM_W, HD_FORM_H);
+            XoaThongBaoChung();
             return false;
         }
         else if (c == 0 || c == 224 || c == -32) {
@@ -2729,14 +2755,14 @@ bool LuuHoaDonDangLap(TREE &root, DSNHANVIEN &dsnv, NHANVIEN *nv, HOADON &hd) {
 void LapCTHDUI(TREE &root, DSNHANVIEN &dsnv, NHANVIEN *nv, HOADON &hd) {
     while (true) {
         XoaManHinh();
-        VeThongTinHoaDonDangLap(nv, hd);
+        VeThongTinHD(nv, hd);
         VeBangCTHD(hd);
 
         int c = getch();
        	if (c == 0 || c == 224 || c == -32) {
             int f = getch();
             if (f == 60) {
-                ThemCTHDUI(root, hd);
+                NhapThongTinCTHD(root, hd);
             }
             else if (f == 61) {
                 SuaCTHDUI(root, hd);
@@ -2861,7 +2887,7 @@ void HD(TREE &root, DSNHANVIEN &dsnv) {
 
         HOADON hd;
         hd.dscthd.n = 0;
-        if (!NhapThongTinDauHoaDonUI(dsnv, nvChon, hd)) {
+        if (!NhapThongTinHD(dsnv, nvChon, hd)) {
             XoaManHinh();
             continue;
         }
@@ -2881,6 +2907,7 @@ void XoaVatTuUI(TREE &root, int &start) {
         c = getch();
         if(c==27){
         	clearLine(65,18,50);
+        	XoaThongBaoChung();
         	return;
 		}
     }
@@ -2904,6 +2931,7 @@ void XoaVatTuUI(TREE &root, int &start) {
             if (c == 27) { // ESC
             	XoaVungSuaVT();
             	clearLine(65,18,20);
+            	XoaThongBaoChung();
 					  // xoa vung xoa vat tu
                 return;                     // thoat che do xoa
             }
@@ -2935,19 +2963,16 @@ void XoaVatTuUI(TREE &root, int &start) {
                     xn = toupper((unsigned char)xn);
 
                     if (xn == 'Y') {
-                        RemoveVT(root, maVT);
+                        XoaVT(root, maVT);
                         InDanhSachVatTuTonKho(root, start);
-
-                        clearLine(65, 18, 45);
-                        gotoxy(65, 18);
-                        cout << "Da xoa vat tu.";
+						ThongBaoChung("Da xoa vat tu.");
+                        
 
                         break; // thoat vong hoi xac nhan
                     }
                     else if (xn == 'N' || xn == 27) {
-                        clearLine(65, 18, 45);
-                        gotoxy(65, 18);
-                        cout << "Da huy xoa.";
+                        ThongBaoChung("Da huy xoa.");
+                        
                         break; // khong xoa
                     }
                 }
@@ -3003,6 +3028,7 @@ int MenuChinh() {
         c = getch();
 
         if (c == 27) { // ESC
+        	XoaThongBaoChung();
             return 0;
         }
 
@@ -3068,7 +3094,7 @@ void DuaNhanVienVeDungThuTu(DSNHANVIEN &ds, int vtCu) {
     ds.n++;
 }
 
-void HieuChinhNV(DSNHANVIEN &ds, int &start) {
+void SuaNV(DSNHANVIEN &ds, int &start) {
     char c;
     char maNV[MAX_MANV + 1];
     int len;
@@ -3099,6 +3125,7 @@ TIM_NV:
         c = getch();
 
         if (c == 27) {
+        	XoaThongBaoChung();
             XoaVungNV();
             return;
         }
@@ -3125,6 +3152,7 @@ TIM_NV:
             }
 
 MENU_SUA:
+			XoaThongBaoChung();
             XoaVungNV();
             gotoxy(70, 1); cout << "Thong tin nhan vien:";
             VeFormNV();
@@ -3143,6 +3171,7 @@ MENU_SUA:
                 c = getch();
 
                 if (c == 27) {
+                	XoaThongBaoChung();
                     XoaVungNV();
                     return;
                 }
@@ -3157,8 +3186,13 @@ MENU_SUA:
                     while (true) {
                         c = getch();
 
-                        if (c == 27) goto MENU_SUA;
+                        if (c == 27) {
+						
+                        XoaThongBaoChung();
+						goto MENU_SUA;
+					}
                         else if (c == 13) {
+                        	
                             hoMoi[len] = '\0';
                             XoaKhoangTrangDauCuoi(hoMoi);
                             ChuanHoaKhoangTrang(hoMoi);
@@ -3218,7 +3252,10 @@ MENU_SUA:
                     while (true) {
                         c = getch();
 
-                        if (c == 27) goto MENU_SUA;
+                        if (c == 27) {
+						
+						XoaThongBaoChung();
+						goto MENU_SUA;}
                         else if (c == 13) {
                             tenMoi[len] = '\0';
                             XoaKhoangTrangDauCuoi(tenMoi);
@@ -3274,7 +3311,9 @@ MENU_SUA:
 
                     while (true) {
                         c = getch();
-                        if (c == 27) goto MENU_SUA;
+                        if (c == 27) 
+						XoaThongBaoChung();
+						goto MENU_SUA;
                         if (c == '1') {
                             strcpy(p->PHAI, "Nam");
                             InDanhSachNhanVien(ds, start);
@@ -3326,7 +3365,6 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
     }
 
     while (true) {
-        XoaVungNV();
         gotoxy(70, 1); cout << "Nhap ma NV muon xoa (ESC de thoat):";
         gotoxy(70, 3); cout << "| Ma NV  : [__________] |";
 
@@ -3339,6 +3377,7 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
             c = getch();
 
             if (c == 27) {
+            	XoaThongBaoChung();
                 XoaVungNV();
                 return;
             }
@@ -3358,10 +3397,11 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
                 	ThongBaoChung("Khong tim thay nhan vien.");
                     break;
                 }
-
-                gotoxy(70, 5); cout << "Ho ten: " << ds.nv[vt]->HO << " " << ds.nv[vt]->TEN << "           ";
+				clearLine(70,5,50);
+				gotoxy(70, 5); cout << "Ho ten: " << ds.nv[vt]->HO << " " << ds.nv[vt]->TEN << "           ";
+				clearLine(70,6,50);
                 gotoxy(70, 6); cout << "Phai  : " << ds.nv[vt]->PHAI << "           ";
-                gotoxy(70, 8); cout << "Nhan Y de xoa, phim khac de huy";
+                ThongBaoChung("Nhan Y de xoa, phim khac de huy");
 
                 c = getch();
                 if (c == 'y' || c == 'Y') {
@@ -3618,7 +3658,7 @@ void NV(DSNHANVIEN &dsnv) {
   
             if (f == 60) {
                 while (true) {
-                    if (!ThemNhanVien(dsnv)) break;
+                    if (!NhapThongTinNV(dsnv)) break;
                     SaveNhanVienToFile(dsnv);
                     start = 0;
 
@@ -3631,7 +3671,7 @@ void NV(DSNHANVIEN &dsnv) {
 
             // ===== F3: S?A =====
             else if (f == 61) {
-                HieuChinhNV(dsnv, start);
+                SuaNV(dsnv, start);
                 SaveNhanVienToFile(dsnv);
 
                 if (dangLoc)
@@ -3705,12 +3745,13 @@ void NV(DSNHANVIEN &dsnv) {
 
         // ===================== ESC =====================
         else if (c == 27) {
+        	XoaThongBaoChung();
             XoaManHinh();
             break;
         }
     }
 }
-void VT(TREE &root, VATTU &x) {
+void QuanLyVatTu(TREE &root, VATTU &x) {
     int start = 0;
     int pageSize = 15;
 
@@ -3735,7 +3776,7 @@ void VT(TREE &root, VATTU &x) {
                 VATTU xMoi;
                 while (true) {
                     if (!NhapThongTinVT(root, xMoi)) break;
-                    ThemVT(root, xMoi);
+                    ThemVTVaoCay(root, xMoi);
                     LuuFileVatTu(root);
 
                     start = 0;
@@ -3747,7 +3788,7 @@ void VT(TREE &root, VATTU &x) {
 
             case 61: // F3
             {
-                HieuChinhVT(root);
+                SuaVT(root);
                 LuuFileVatTu(root);
 
                 if (dangLoc) InDanhSachVatTuTheoTuKhoa(root, start, tuKhoaLoc);
@@ -3819,6 +3860,7 @@ void VT(TREE &root, VATTU &x) {
         }
 
         else if (c == 27) { // ESC
+        	XoaThongBaoChung();
             XoaManHinh();
             break;
         }
@@ -3835,7 +3877,7 @@ void QuanLyChinh(TREE &root, DSNHANVIEN &dsnv,VATTU &x) {
 
         switch (chon) {
             case 1:
-                VT(root,x);      
+                QuanLyVatTu(root,x);      
                 break;
 
             case 2:

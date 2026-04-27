@@ -1,4 +1,7 @@
-VT03|Aquafina|chai|20000
-VT05|Tai Nghe|cai|20
-VT09|But|i|2000
+VT01|Pin|cuc|10000
+VT02|Cuc Sac|chiec|5
+VT03|Sach|quyen|10000
+VT04|Ghe|chiec|10000
+VT05|Tai Nghe|cai|10
+VT09|But|chiec|1800
 VT10|Sach|quyen|1000
