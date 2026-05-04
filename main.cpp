@@ -6,8 +6,8 @@
 #include <cctype>			//Khong Dung TimKiemMaVT ma van in duoc sLT, SOLUONG,....
 #include <cstdio>
 #include <conio.h>		
-#include <windows.h>
-	
+#include <windows.h>		//doi sort vt sang quick or merge O(nlogn)
+							//Sua Phan F3 sua vt trong cthd,...
 using namespace std;
 
 #define MAX_MAVT 10
@@ -202,6 +202,11 @@ void clearArea(int x, int y, int w, int h) {
         for (int j = 0; j < w; j++) {
             cout << ' ';         
         }
+    }
+}
+void XoaVungData(int x, int y, int width, int pageSize) {
+    for (int i = 0; i < pageSize; i++) {
+        clearLine(x, y + i, width);
     }
 }
 void VeKhungThongBao(int x, int y, int w) {
@@ -570,87 +575,55 @@ void InDanhSachVatTuTonKho(TREE root, int start) {
     VATTU a[1000];
     int n = 0;
     int pageSize = 15;
-    int x = 2;
     int y = 2;
 
     ChepCayRaMang(root, a, n);
     SapXepTheoTen(a, n);
 
-    // xoa vung bang ben trai
-    clearArea(2, 2, 60, 22);
-
-    // Header
     gotoxy(2, y);   cout << "Ma VT";
     gotoxy(14, y);  cout << "Ten VT";
     gotoxy(36, y);  cout << "DVT";
     gotoxy(48, y);  cout << "SLT";
 
-    // duong ke
     gotoxy(2, y + 1);
     for (int i = 0; i < 58; i++) cout << '-';
 
-    // neu rong
+    XoaVungData(2, y + 2, 58, pageSize);
+
     if (n == 0) {
         gotoxy(2, y + 3);
         cout << "Danh sach vat tu rong.";
+    } else {
+        if (start < 0) start = 0;
+        if (start >= n) start = (n - 1) / pageSize * pageSize;
 
-         clearLine(2, y + pageSize + 3, 58);
-        gotoxy(2, y + pageSize + 3);
-        cout << "Trang: 1/1";
+        for (int i = start; i < start + pageSize && i < n; i++) {
+            int row = y + 2 + (i - start);
 
-        clearLine(2, y + pageSize + 4, 58);
-        gotoxy(2, y + pageSize + 4);
-        cout << "[>] Trang sau   [<] Trang truoc	[ESC] Thoat";
+            printAt(2,  row, a[i].MAVT, 10);
+            printAt(14, row, a[i].TENVT, 20);
+            printAt(36, row, a[i].DVT,   10);
 
-        clearLine(2, y + pageSize + 5, 58);
-        gotoxy(2, y + pageSize + 5);
-        cout << "[F2] Them VT    [F3] Sua VT   		[F4] Xoa VT";
-
-        clearLine(2, y + pageSize + 6, 58);
-        gotoxy(2, y + pageSize + 6);
-        cout << "Loc TENVT: ";
-        return;
+            gotoxy(48, row);
+            cout << a[i].SLT << "      ";
+        }
     }
 
-    // chong start vuot
-    if (start < 0) start = 0;
-    if (start >= n) start = (n - 1) / pageSize * pageSize;
-
-    // Data
-    for (int i = start; i < start + pageSize && i < n; i++) {
-        int row = y + 2 + (i - start);
-
-        clearLine(2, row, 58);
-
-        printAt(2,  row, a[i].MAVT, 10);
-        printAt(14, row, a[i].TENVT, 20);
-        printAt(36, row, a[i].DVT,   10);
-
-        gotoxy(48, row);
-        cout << a[i].SLT << "      ";
-    }
-
-    // xoa cac dong du ben duoi neu trang moi it dong hon trang cu
-    int soDongTrang = n - start;
-    if (soDongTrang > pageSize) soDongTrang = pageSize;
-
-    for (int row = y + 2 + soDongTrang; row < y + 2 + pageSize; row++) {
-        clearLine(2, row, 58);
-    }
-
-    // thong tin trang
-    int totalPages = (n + pageSize - 1) / pageSize;
-    int currentPage = start / pageSize + 1;
+    int totalPages = (n == 0 ? 1 : (n + pageSize - 1) / pageSize);
+    int currentPage = (n == 0 ? 1 : start / pageSize + 1);
 
     clearLine(2, y + pageSize + 3, 58);
     gotoxy(2, y + pageSize + 3);
     cout << "Trang: " << currentPage << "/" << totalPages;
+
     clearLine(2, y + pageSize + 4, 58);
     gotoxy(2, y + pageSize + 4);
-    cout << "[>] Trang sau   [<] Trang truoc	[ESC] Thoat";
+    cout << "[>] Trang sau   [<] Trang truoc   [ESC] Thoat";
+
     clearLine(2, y + pageSize + 5, 58);
     gotoxy(2, y + pageSize + 5);
-    cout << "[F2] Them VT    [F3] Sua VT   	[F4] Xoa VT";
+    cout << "[F2] Them VT    [F3] Sua VT       [F4] Xoa VT";
+
     clearLine(2, y + pageSize + 6, 58);
     gotoxy(2, y + pageSize + 6);
     cout << "Loc TENVT: ";
@@ -1430,56 +1403,54 @@ int SoSanhNhanVien(NHANVIEN *a, NHANVIEN *b) {
 
 
 void InDanhSachNhanVien(DSNHANVIEN ds, int start) {
-    int x = 2;
     int y = 2;
     int pageSize = 15;
 
-    // chi xoa vung bang ben trai
-    clearArea(2, 2, 58, 25);
-
-    // Header
     gotoxy(2, y);   cout << "Ma NV";
     gotoxy(16, y);  cout << "Ho";
     gotoxy(34, y);  cout << "Ten";
     gotoxy(50, y);  cout << "Phai";
 
-    // duong ke
     gotoxy(2, y + 1);
     for (int i = 0; i < 58; i++) cout << '-';
 
-    // Data
-    for (int i = start; i < start + pageSize && i < ds.n; i++) {
-        int row = y + 2 + (i - start);
+    XoaVungData(2, y + 2, 58, pageSize);
 
-        clearLine(2, row, 58);
+    if (ds.n == 0) {
+        gotoxy(2, y + 3);
+        cout << "Danh sach nhan vien rong.";
+    } else {
+        if (start < 0) start = 0;
+        if (start >= ds.n) start = (ds.n - 1) / pageSize * pageSize;
 
-        printAt(2,  row, ds.nv[i]->MANV, 12);
-        printAt(16, row, ds.nv[i]->HO,   16);
-        printAt(34, row, ds.nv[i]->TEN,  14);
-        printAt(50, row, ds.nv[i]->PHAI, 8);
+        for (int i = start; i < start + pageSize && i < ds.n; i++) {
+            int row = y + 2 + (i - start);
+
+            printAt(2,  row, ds.nv[i]->MANV, 12);
+            printAt(16, row, ds.nv[i]->HO,   16);
+            printAt(34, row, ds.nv[i]->TEN,  14);
+            printAt(50, row, ds.nv[i]->PHAI, 8);
+        }
     }
 
-    // xoa cac dong du ben duoi neu trang moi it dong hon trang cu
-    for (int row = y + 2 + (ds.n - start < pageSize ? ds.n - start : pageSize); row < y + 2 + pageSize; row++) {
-        clearLine(2, row, 58);
-    }
+    int totalPages = (ds.n == 0 ? 1 : (ds.n + pageSize - 1) / pageSize);
+    int currentPage = (ds.n == 0 ? 1 : start / pageSize + 1);
 
-    int totalPages = (ds.n + pageSize - 1) / pageSize;
-	if (totalPages == 0) totalPages = 1;
-	int currentPage = start / pageSize + 1;
-	clearLine(2, y + pageSize + 3, 58);
-	gotoxy(2, y + pageSize + 3);
-	cout << "Trang: " << currentPage << "/" << totalPages;
+    clearLine(2, y + pageSize + 3, 58);
+    gotoxy(2, y + pageSize + 3);
+    cout << "Trang: " << currentPage << "/" << totalPages;
 
-    gotoxy(2, y + pageSize + 5);
     clearLine(2, y + pageSize + 5, 58);
     gotoxy(2, y + pageSize + 5);
-    cout << "[>] Trang sau	[<] Trang truoc	[ESC] Thoat";
-    gotoxy(2,y+pageSize+6);
-	cout << "[F2] Them NV	[F3] Sua NV	[F4] Xoa NV";
-	gotoxy(2,y+pageSize+7);
-	cout<<"Loc TEN: ";
-    
+    cout << "[>] Trang sau   [<] Trang truoc   [ESC] Thoat";
+
+    clearLine(2, y + pageSize + 6, 58);
+    gotoxy(2, y + pageSize + 6);
+    cout << "[F2] Them NV    [F3] Sua NV       [F4] Xoa NV";
+
+    clearLine(2, y + pageSize + 7, 58);
+    gotoxy(2, y + pageSize + 7);
+    cout << "Loc TEN: ";
 }
 
 
@@ -1949,7 +1920,7 @@ void VeDanhSachHoaDon(ITEM_HD a[], int n, int start, int selected, const char tu
     int y = 2;
     int pageSize = 15;
 
-    clearArea(1, 1, 125, 35);
+    clearArea(1, 1, 85, 25);
 
     gotoxy(2, 1);  cout << "DANH SACH HOA DON";
 
@@ -1962,14 +1933,17 @@ void VeDanhSachHoaDon(ITEM_HD a[], int n, int start, int selected, const char tu
     gotoxy(2, y + 1);
     for (int i = 0; i < 78; i++) cout << '-';
 
+    XoaVungData(2, y + 2, 85, pageSize);
+
     if (n == 0) {
         gotoxy(2, y + 3);
         cout << "Khong co hoa don phu hop.";
     } else {
+        if (start < 0) start = 0;
+        if (start >= n) start = (n - 1) / pageSize * pageSize;
+
         for (int i = start; i < start + pageSize && i < n; i++) {
             int row = y + 2 + (i - start);
-
-            clearLine(2, row, 85);
 
             gotoxy(3, row);
             cout << (i == selected ? '>' : ' ');
@@ -1987,12 +1961,8 @@ void VeDanhSachHoaDon(ITEM_HD a[], int n, int start, int selected, const char tu
             printAt(42, row, hoten, 24);
 
             gotoxy(70, row);
-            cout << a[i].hd->data.Loai;
+            cout << a[i].hd->data.Loai << " ";
         }
-    }
-
-    for (int row = y + 2 + (n - start < pageSize ? n - start : pageSize); row < y + 2 + pageSize; row++) {
-        clearLine(2, row, 85);
     }
 
     int totalPages = (n == 0 ? 1 : (n + pageSize - 1) / pageSize);
@@ -2187,8 +2157,6 @@ void VeBangChonVatTuPopup(VATTU loc[], int nLoc, int start, int selected, const 
     int y = 2;
     int pageSize = 15;
 
-    // chi xoa vung popup ben trai, khong xoa ca man hinh
-    XoaManHinh();
     clearArea(2, 1, 64, 25);
 
     gotoxy(2, 1); cout << "TIM VAT TU TON KHO";
@@ -2202,16 +2170,12 @@ void VeBangChonVatTuPopup(VATTU loc[], int nLoc, int start, int selected, const 
     gotoxy(2, y + 1);
     for (int i = 0; i < 60; i++) cout << '-';
 
-    // xoa 15 dong du lieu cua trang hien tai
-    for (int i = 0; i < pageSize; i++) {
-        clearLine(2, y + 2 + i, 60);
-    }
+    XoaVungData(2, y + 2, 60, pageSize);
 
     if (nLoc == 0) {
         gotoxy(2, y + 3);
         cout << "Khong co vat tu phu hop.";
-    }
-    else {
+    } else {
         for (int i = start; i < start + pageSize && i < nLoc; i++) {
             int row = y + 2 + (i - start);
 
@@ -3195,10 +3159,19 @@ void XoaVatTuUI(TREE &root, int &start, DSNHANVIEN &dsnv) {
 						    ThongBaoChung("Vat tu da co trong hoa don. Khong duoc xoa.");
 						    break;
 						}
-						XoaVT(root, maVT);
-                        InDanhSachVatTuTonKho(root, start);
-						ThongBaoChung("Da xoa vat tu.");
-                        break; // thoat vong hoi xac nhan
+						if (XoaVT(root, maVT)) {
+						    int nVT = 0;
+						    VATTU tmp[1000];
+						    ChepCayRaMang(root, tmp, nVT);
+						
+						    if (nVT == 0) start = 0;
+						    else if (start >= nVT) start = ((nVT - 1) / 15) * 15;
+						
+						    InDanhSachVatTuTonKho(root, start);
+						    ThongBaoChung("Da xoa vat tu.");
+						} else {
+					    	ThongBaoChung("Xoa vat tu that bai.");
+						}
                     }
                     else if (xn == 'N' || xn == 27) {
                         ThongBaoChung("Da huy xoa.");
@@ -3693,16 +3666,6 @@ void InDanhSachNhanVienTheoTuKhoa(DSNHANVIEN ds, int start, const char tuKhoa[])
     int y = 2;
     int pageSize = 15;
 
-    clearArea(2, 2, 58, 25);
-
-    gotoxy(2, y);   cout << "Ma NV";
-    gotoxy(16, y);  cout << "Ho";
-    gotoxy(34, y);  cout << "Ten";
-    gotoxy(50, y);  cout << "Phai";
-
-    gotoxy(2, y + 1);
-    for (int i = 0; i < 58; i++) cout << '-';
-
     NHANVIEN* loc[MAXNV];
     int nLoc = 0;
 
@@ -3712,49 +3675,35 @@ void InDanhSachNhanVienTheoTuKhoa(DSNHANVIEN ds, int start, const char tuKhoa[])
         }
     }
 
+    gotoxy(2, y);   cout << "Ma NV";
+    gotoxy(16, y);  cout << "Ho";
+    gotoxy(34, y);  cout << "Ten";
+    gotoxy(50, y);  cout << "Phai";
+
+    gotoxy(2, y + 1);
+    for (int i = 0; i < 58; i++) cout << '-';
+
+    XoaVungData(2, y + 2, 58, pageSize);
+
     if (nLoc == 0) {
         gotoxy(2, y + 3);
         cout << "Khong co nhan vien nao co TEN bat dau bang: " << tuKhoa;
+    } else {
+        if (start < 0) start = 0;
+        if (start >= nLoc) start = (nLoc - 1) / pageSize * pageSize;
 
-        clearLine(2, y + pageSize + 3, 58);
-        gotoxy(2, y + pageSize + 3);
-        cout << "Trang: 1/1";
+        for (int i = start; i < start + pageSize && i < nLoc; i++) {
+            int row = y + 2 + (i - start);
 
-        clearLine(2, y + pageSize + 5, 58);
-		gotoxy(2, y + pageSize + 5);
-		cout << "[>] Trang sau	[<] Trang truoc	[ESC] Thoat";
-		gotoxy(2,y+pageSize+6);
-		cout << "[F2] Them NV	[F3] Sua NV	[F4] Xoa NV";
-
-        clearLine(2, y + pageSize + 7, 58);
-        gotoxy(2, y + pageSize + 7);
-        cout << "Loc TEN: " << tuKhoa << "   [Backspace] Xoa 1 ky tu";
-        return;
+            printAt(2,  row, loc[i]->MANV, 12);
+            printAt(16, row, loc[i]->HO,   16);
+            printAt(34, row, loc[i]->TEN,  14);
+            printAt(50, row, loc[i]->PHAI, 8);
+        }
     }
 
-    if (start < 0) start = 0;
-    if (start >= nLoc) start = (nLoc - 1) / pageSize * pageSize;
-
-    for (int i = start; i < start + pageSize && i < nLoc; i++) {
-        int row = y + 2 + (i - start);
-
-        clearLine(2, row, 58);
-
-        printAt(2,  row, loc[i]->MANV, 12);
-        printAt(16, row, loc[i]->HO,   16);
-        printAt(34, row, loc[i]->TEN,  14);
-        printAt(50, row, loc[i]->PHAI, 8);
-    }
-
-    int soDongTrang = nLoc - start;
-    if (soDongTrang > pageSize) soDongTrang = pageSize;
-
-    for (int row = y + 2 + soDongTrang; row < y + 2 + pageSize; row++) {
-        clearLine(2, row, 58);
-    }
-
-    int totalPages = (nLoc + pageSize - 1) / pageSize;
-    int currentPage = start / pageSize + 1;
+    int totalPages = (nLoc == 0 ? 1 : (nLoc + pageSize - 1) / pageSize);
+    int currentPage = (nLoc == 0 ? 1 : start / pageSize + 1);
 
     clearLine(2, y + pageSize + 3, 58);
     gotoxy(2, y + pageSize + 3);
@@ -3762,9 +3711,11 @@ void InDanhSachNhanVienTheoTuKhoa(DSNHANVIEN ds, int start, const char tuKhoa[])
 
     clearLine(2, y + pageSize + 5, 58);
     gotoxy(2, y + pageSize + 5);
-    cout << "[>] Trang sau	[<] Trang truoc	[ESC] Thoat";
-    gotoxy(2,y+pageSize+6);
-	cout << "[F2] Them NV	[F3] Sua NV	[F4] Xoa NV";
+    cout << "[>] Trang sau   [<] Trang truoc   [ESC] Thoat";
+
+    clearLine(2, y + pageSize + 6, 58);
+    gotoxy(2, y + pageSize + 6);
+    cout << "[F2] Them NV    [F3] Sua NV       [F4] Xoa NV";
 
     clearLine(2, y + pageSize + 7, 58);
     gotoxy(2, y + pageSize + 7);
@@ -3786,8 +3737,6 @@ void InDanhSachVatTuTheoTuKhoa(TREE root, int start, const char tuKhoa[]) {
         }
     }
 
-    clearArea(2, 2, 60, 24);
-
     gotoxy(2, y);   cout << "Ma VT";
     gotoxy(14, y);  cout << "Ten VT";
     gotoxy(36, y);  cout << "DVT";
@@ -3796,52 +3745,29 @@ void InDanhSachVatTuTheoTuKhoa(TREE root, int start, const char tuKhoa[]) {
     gotoxy(2, y + 1);
     for (int i = 0; i < 58; i++) cout << '-';
 
+    XoaVungData(2, y + 2, 58, pageSize);
+
     if (nLoc == 0) {
         gotoxy(2, y + 3);
         cout << "Khong co vat tu nao co TENVT bat dau bang: " << tuKhoa;
+    } else {
+        if (start < 0) start = 0;
+        if (start >= nLoc) start = (nLoc - 1) / pageSize * pageSize;
 
-        clearLine(2, y + pageSize + 3, 58);
-        gotoxy(2, y + pageSize + 3);
-        cout << "Trang: 1/1";
+        for (int i = start; i < start + pageSize && i < nLoc; i++) {
+            int row = y + 2 + (i - start);
 
-        clearLine(2, y + pageSize + 4, 58);
-        gotoxy(2, y + pageSize + 4);
-        cout << "[>] Trang sau   [<] Trang truoc	[ESC] Thoat";
+            printAt(2,  row, loc[i].MAVT, 10);
+            printAt(14, row, loc[i].TENVT, 20);
+            printAt(36, row, loc[i].DVT,   10);
 
-        clearLine(2, y + pageSize + 5, 58);
-        gotoxy(2, y + pageSize + 5);
-        cout << "[F2] Them VT    [F3] Sua VT   	[F4] Xoa VT";
-
-        clearLine(2, y + pageSize + 6, 58);
-        gotoxy(2, y + pageSize + 6);
-        cout << "Loc TENVT: " << tuKhoa << "   [Backspace] Xoa 1 ky tu";
-        return;
+            gotoxy(48, row);
+            cout << loc[i].SLT << "      ";
+        }
     }
 
-    if (start < 0) start = 0;
-    if (start >= nLoc) start = (nLoc - 1) / pageSize * pageSize;
-
-    for (int i = start; i < start + pageSize && i < nLoc; i++) {
-        int row = y + 2 + (i - start);
-
-        clearLine(2, row, 58);
-
-        printAt(2,  row, loc[i].MAVT, 10);
-        printAt(14, row, loc[i].TENVT, 20);
-        printAt(36, row, loc[i].DVT,   10);
-        gotoxy(48, row);
-        cout << loc[i].SLT << "      ";
-    }
-
-    int soDongTrang = nLoc - start;
-    if (soDongTrang > pageSize) soDongTrang = pageSize;
-
-    for (int row = y + 2 + soDongTrang; row < y + 2 + pageSize; row++) {
-        clearLine(2, row, 58);
-    }
-
-    int totalPages = (nLoc + pageSize - 1) / pageSize;
-    int currentPage = start / pageSize + 1;
+    int totalPages = (nLoc == 0 ? 1 : (nLoc + pageSize - 1) / pageSize);
+    int currentPage = (nLoc == 0 ? 1 : start / pageSize + 1);
 
     clearLine(2, y + pageSize + 3, 58);
     gotoxy(2, y + pageSize + 3);
@@ -3849,11 +3775,11 @@ void InDanhSachVatTuTheoTuKhoa(TREE root, int start, const char tuKhoa[]) {
 
     clearLine(2, y + pageSize + 4, 58);
     gotoxy(2, y + pageSize + 4);
-    cout << "[>] Trang sau   [<] Trang truoc	[ESC] Thoat";
+    cout << "[>] Trang sau   [<] Trang truoc   [ESC] Thoat";
 
     clearLine(2, y + pageSize + 5, 58);
     gotoxy(2, y + pageSize + 5);
-    cout << "[F2] Them VT    [F3] Sua VT   	[F4] Xoa VT";
+    cout << "[F2] Them VT    [F3] Sua VT       [F4] Xoa VT";
 
     clearLine(2, y + pageSize + 6, 58);
     gotoxy(2, y + pageSize + 6);

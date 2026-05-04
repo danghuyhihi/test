@@ -5,3 +5,4 @@ VT04|Ghe|chiec|10000
 VT05|Tai Nghe|cai|185
 VT09|But|chiec|2800
 VT10|Sach|quyen|1000
+VT11|Chuot|cai|100
