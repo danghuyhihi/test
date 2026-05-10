@@ -1,14 +1,15 @@
 #include <iostream>
-#include <cstring>		
+#include <cstring>	
+#include <string>	
 #include <iomanip>
 #include <fstream>
-#include <cstdlib>			//block remove VT khi da nhaapjp trong CTHD
+#include <cstdlib>			
 #include <cctype>			//Khong Dung TimKiemMaVT ma van in duoc sLT, SOLUONG,....
 #include <cstdio>
 #include <conio.h>		
 #include <windows.h>		//doi sort vt sang quick or merge O(nlogn)
 							//Sua Phan F3 sua vt trong cthd,...
-using namespace std;
+using namespace std;		//Ve o tim hd theo soHD
 
 #define MAX_MAVT 10
 #define MAX_TENVT 20
@@ -100,15 +101,17 @@ struct ITEM_HD {			//mang tam HD dslk
     NHANVIEN *nv;
 };
 
-int TaoMangHoaDon(DSNHANVIEN ds, ITEM_HD a[]) {
+int TaoMangHoaDon(DSNHANVIEN ds, ITEM_HD a[], int maxN) {
     int n = 0;
-    for (int i = 0; i < ds.n; i++) {
-        for (DSHD p = ds.nv[i]->dshd; p != NULL; p = p->next) {
+
+    for (int i = 0; i < ds.n && n < maxN; i++) {
+        for (DSHD p = ds.nv[i]->dshd; p != NULL && n < maxN; p = p->next) {
             a[n].hd = p;
             a[n].nv = ds.nv[i];
             n++;
         }
     }
+
     return n;
 }
 bool BatDauBang(const char s[], const char prefix[]) {
@@ -121,10 +124,11 @@ bool BatDauBang(const char s[], const char prefix[]) {
     }
     return true;
 }
-int TaoMangHoaDonLoc(DSNHANVIEN ds, const char tuKhoa[], ITEM_HD a[]) {
+int TaoMangHoaDonLoc(DSNHANVIEN ds, const char tuKhoa[], ITEM_HD a[], int maxN) {
     int n = 0;
-    for (int i = 0; i < ds.n; i++) {
-        for (DSHD p = ds.nv[i]->dshd; p != NULL; p = p->next) {
+
+    for (int i = 0; i < ds.n && n < maxN; i++) {
+        for (DSHD p = ds.nv[i]->dshd; p != NULL && n < maxN; p = p->next) {
             if (tuKhoa[0] == '\0' || BatDauBang(ds.nv[i]->TEN, tuKhoa)) {
                 a[n].hd = p;
                 a[n].nv = ds.nv[i];
@@ -132,9 +136,20 @@ int TaoMangHoaDonLoc(DSNHANVIEN ds, const char tuKhoa[], ITEM_HD a[]) {
             }
         }
     }
+
     return n;
 }
+void CopySafe(char dest[], const char src[], int maxLen) {		//chi lay dung ky tu trong mang
+    if (dest == NULL) return;
 
+    if (src == NULL) {
+        dest[0] = '\0';
+        return;
+    }
+
+    strncpy(dest, src, maxLen);
+    dest[maxLen] = '\0';
+}
 void SaveVatTuToFile(TREE root, ofstream &f) {
     if (root == NULL) return;
 
@@ -186,6 +201,7 @@ void ChuanHoaKhoangTrang(char s[])				//
             i++;
     }
 }
+
 void gotoxy(int x, int y) {
     COORD pos;
     pos.X = x;
@@ -194,15 +210,42 @@ void gotoxy(int x, int y) {
 }
 void clearLine(int x, int y, int width) {
     gotoxy(x, y);
-    for (int i = 0; i < width; i++) cout << ' ';
+    cout << string(width, ' ');
 }
+
 void clearArea(int x, int y, int w, int h) {
+    string blank(w, ' ');
     for (int i = 0; i < h; i++) {
-        gotoxy(x, y + i);        
-        for (int j = 0; j < w; j++) {
-            cout << ' ';         
+        gotoxy(x, y + i);
+        cout << blank;
+    }
+}
+//giai phong bo nho khi thoat
+void ClearTree(TREE &root) {
+    if (root == NULL) return;
+
+    ClearTree(root->left);
+    ClearTree(root->right);
+
+    delete root;
+    root = NULL;
+}
+void ClearDSHD(DSHD &head) {
+    while (head != NULL) {
+        DSHD p = head;
+        head = head->next;
+        delete p;
+    }
+}
+void ClearDSNV(DSNHANVIEN &ds) {
+    for (int i = 0; i < ds.n; i++) {
+        if (ds.nv[i] != NULL) {
+            ClearDSHD(ds.nv[i]->dshd);
+            delete ds.nv[i];
+            ds.nv[i] = NULL;
         }
     }
+    ds.n = 0;
 }
 void XoaVungData(int x, int y, int width, int pageSize) {
     for (int i = 0; i < pageSize; i++) {
@@ -322,12 +365,12 @@ NHANVIEN* TimNhanVienTheoMa(DSNHANVIEN ds, const char ma[]) {
     return NULL;
 }
 
-int KiemTraTrungMANV(DSNHANVIEN ds, char ma[]) {
+bool KhongTrungMANV(DSNHANVIEN ds, const char ma[]) {
     for (int i = 0; i < ds.n; i++) {
         if (strcmp(ds.nv[i]->MANV, ma) == 0)
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 
@@ -544,40 +587,78 @@ void SaveDSNVToFile(DSNHANVIEN ds) {
 
     f.close();
 }
-void ChepCayRaMang(TREE root, VATTU a[], int &n) {
-    if (root == NULL) return;
+void ChepCayRaMang(TREE root, VATTU a[], int &n, int maxN) {
+    if (root == NULL || n >= maxN) return;
 
-    ChepCayRaMang(root->left, a, n);
-    a[n++] = root->data;
-    
-    ChepCayRaMang(root->right, a, n);
+    ChepCayRaMang(root->left, a, n, maxN);
+
+    if (n < maxN) {
+        a[n++] = root->data;
+    }
+
+    ChepCayRaMang(root->right, a, n, maxN);
 }
 
 int SoSanhTenVT(const VATTU &a, const VATTU &b) {
-    int kq = strcmp(a.TENVT, b.TENVT); 				
+    int kq = strcmp(a.TENVT, b.TENVT);
     if (kq != 0) return kq;
 
     return strcmp(a.MAVT, b.MAVT);
 }
 
-void SapXepTheoTen(VATTU a[], int n) {   //bubble sort
-    for (int i = 0; i < n - 1; i++) {
-        for (int j = i + 1; j < n; j++) {
-            if (SoSanhTenVT(a[i], a[j]) > 0) {
-                VATTU temp = a[i];
-                a[i] = a[j];
-                a[j] = temp;
-            }
+void HoanViVT(VATTU &a, VATTU &b) {
+    VATTU temp = a;
+    a = b;
+    b = temp;
+}
+
+void QuickSortVatTuTheoTen(VATTU a[], int left, int right) {
+    int i = left;
+    int j = right;
+    VATTU pivot = a[(left + right) / 2];
+
+    while (i <= j) {
+        while (SoSanhTenVT(a[i], pivot) < 0) i++;
+        while (SoSanhTenVT(a[j], pivot) > 0) j--;
+
+        if (i <= j) {
+            HoanViVT(a[i], a[j]);
+            i++;
+            j--;
         }
     }
+
+    if (left < j) QuickSortVatTuTheoTen(a, left, j);
+    if (i < right) QuickSortVatTuTheoTen(a, i, right);
+}
+bool LaNamNhuan(int nam) {
+    return (nam % 400 == 0) || (nam % 4 == 0 && nam % 100 != 0);
+}
+
+bool KiemTraNgayHopLe(int ngay, int thang, int nam) {
+    if (nam < 1900 || nam > 9999) return false;
+    if (thang < 1 || thang > 12) return false;
+    if (ngay < 1) return false;
+
+    int soNgay[] = {0,31,28,31,30,31,30,31,31,30,31,30,31};
+    if (LaNamNhuan(nam)) soNgay[2] = 29;
+    return ngay <= soNgay[thang];
+}
+
+void DinhDangNgay(const Date &d, char out[]) {
+    sprintf(out, "%02d/%02d/%04d", d.day, d.month, d.year);
+}
+void SapXepTheoTen(VATTU a[], int n) {
+    if (n <= 1) return;
+    QuickSortVatTuTheoTen(a, 0, n - 1);
 }
 void InDanhSachVatTuTonKho(TREE root, int start) {
-    VATTU a[1000];
+    VATTU a[MAXTEMP];
     int n = 0;
     int pageSize = 15;
     int y = 2;
 
-    ChepCayRaMang(root, a, n);
+    ChepCayRaMang(root, a, n, MAXTEMP);
     SapXepTheoTen(a, n);
 
     gotoxy(2, y);   cout << "Ma VT";
@@ -593,7 +674,8 @@ void InDanhSachVatTuTonKho(TREE root, int start) {
     if (n == 0) {
         gotoxy(2, y + 3);
         cout << "Danh sach vat tu rong.";
-    } else {
+    } 
+    else {
         if (start < 0) start = 0;
         if (start >= n) start = (n - 1) / pageSize * pageSize;
 
@@ -650,7 +732,7 @@ void LoadDSNVFromFile(DSNHANVIEN &ds) {
     f >> soNV;
     f.ignore();
 
-    for (int i = 0; i < soNV; i++) {
+    for (int i = 0; i < soNV && ds.n < MAXNV; i++) {
         NHANVIEN *nv = new NHANVIEN;
         nv->dshd = NULL;
 
@@ -659,86 +741,120 @@ void LoadDSNVFromFile(DSNHANVIEN &ds) {
 
         if (strlen(line) == 0) {
             delete nv;
-            break;
+            continue;
         }
 
         char *token = strtok(line, "|");
-        if (token == NULL) { delete nv; break; }
-        strcpy(nv->MANV, token);
+        if (token == NULL) { delete nv; continue; }
+        CopySafe(nv->MANV, token, MAX_MANV);
 
         token = strtok(NULL, "|");
-        if (token == NULL) { delete nv; break; }
-        strcpy(nv->HO, token);
+        if (token == NULL) { delete nv; continue; }
+        CopySafe(nv->HO, token, MAX_HO);
 
         token = strtok(NULL, "|");
-        if (token == NULL) { delete nv; break; }
-        strcpy(nv->TEN, token);
+        if (token == NULL) { delete nv; continue; }
+        CopySafe(nv->TEN, token, MAX_TEN);
 
         token = strtok(NULL, "|");
-        if (token == NULL) { delete nv; break; }
-        strcpy(nv->PHAI, token);
+        if (token == NULL) { delete nv; continue; }
+        CopySafe(nv->PHAI, token, MAX_PHAI);
 
         token = strtok(NULL, "|");
-        if (token == NULL) { delete nv; break; }
+        if (token == NULL) { delete nv; continue; }
         int soHD = atoi(token);
 
-        for (int h = 0; h < soHD; h++) {
-            HOADON hd;
-            hd.dscthd.n = 0;
-            strcpy(hd.MANV, nv->MANV);
+        if (!KiemTraMaNV(nv->MANV) || strlen(nv->HO) == 0 || strlen(nv->TEN) == 0) {
+            delete nv;
+            continue;
+        }
 
+        for (int k = 0; k < soHD; k++) {
             char lineHD[256];
             f.getline(lineHD, 256);
 
-            char *tk = strtok(lineHD, "|");
-            if (tk == NULL) break;
-            strcpy(hd.SoHD, tk);
+            if (strlen(lineHD) == 0) continue;
 
-            tk = strtok(NULL, "|"); if (tk == NULL) break;
+            HOADON hd;
+            hd.dscthd.n = 0;
+            CopySafe(hd.MANV, nv->MANV, MAX_MANV);
+
+            char *tk = strtok(lineHD, "|");
+            if (tk == NULL) continue;
+            CopySafe(hd.SoHD, tk, MAX_SOHD);
+
+            tk = strtok(NULL, "|");
+            if (tk == NULL) continue;
             hd.Ngaylap.day = atoi(tk);
 
-            tk = strtok(NULL, "|"); if (tk == NULL) break;
+            tk = strtok(NULL, "|");
+            if (tk == NULL) continue;
             hd.Ngaylap.month = atoi(tk);
 
-            tk = strtok(NULL, "|"); if (tk == NULL) break;
+            tk = strtok(NULL, "|");
+            if (tk == NULL) continue;
             hd.Ngaylap.year = atoi(tk);
 
-            tk = strtok(NULL, "|"); if (tk == NULL) break;
-            hd.Loai = tk[0];
+            tk = strtok(NULL, "|");
+            if (tk == NULL) continue;
+            hd.Loai = toupper((unsigned char)tk[0]);
 
-            tk = strtok(NULL, "|"); if (tk == NULL) break;
+            tk = strtok(NULL, "|");
+            if (tk == NULL) continue;
             int soCT = atoi(tk);
 
             if (soCT < 0) soCT = 0;
             if (soCT > MAXCTHD) soCT = MAXCTHD;
 
-            hd.dscthd.n = soCT;
-
             for (int j = 0; j < soCT; j++) {
                 char lineCT[256];
                 f.getline(lineCT, 256);
+
+                if (strlen(lineCT) == 0) {
+                    hd.dscthd.n = j;
+                    break;
+                }
+
+                CT_HOADON ct;
 
                 char *t = strtok(lineCT, "|");
                 if (t == NULL) {
                     hd.dscthd.n = j;
                     break;
                 }
-                strcpy(hd.dscthd.ct[j].MAVT, t);
+                CopySafe(ct.MAVT, t, MAX_MAVT);
 
                 t = strtok(NULL, "|");
-                if (t == NULL) { hd.dscthd.n = j; break; }
-                hd.dscthd.ct[j].Soluong = atoi(t);
+                if (t == NULL) {
+                    hd.dscthd.n = j;
+                    break;
+                }
+                ct.Soluong = atoi(t);
 
                 t = strtok(NULL, "|");
-                if (t == NULL) { hd.dscthd.n = j; break; }
-                hd.dscthd.ct[j].Dongia = atol(t);
+                if (t == NULL) {
+                    hd.dscthd.n = j;
+                    break;
+                }
+                ct.Dongia = atol(t);
 
                 t = strtok(NULL, "|");
-                if (t == NULL) { hd.dscthd.n = j; break; }
-                hd.dscthd.ct[j].VAT = (float)atof(t);
+                if (t == NULL) {
+                    hd.dscthd.n = j;
+                    break;
+                }
+                ct.VAT = (float)atof(t);
+
+                if (KiemTraMaVT(ct.MAVT) && ct.Soluong > 0 && ct.Dongia >= 0 && ct.VAT >= 0 && ct.VAT <= 100) {
+                    hd.dscthd.ct[hd.dscthd.n++] = ct;
+                }
             }
 
-            ThemHoaDonVaoCuoi(nv->dshd, hd);
+            if (KiemTraSoHoaDon(hd.SoHD) &&
+                KiemTraNgayHopLe(hd.Ngaylap.day, hd.Ngaylap.month, hd.Ngaylap.year) &&
+                (hd.Loai == 'N' || hd.Loai == 'X')) {
+                ThemHoaDonVaoCuoi(nv->dshd, hd);
+            }
         }
 
         ds.nv[ds.n++] = nv;
@@ -752,26 +868,28 @@ void LoadVatTuFromFile(TREE &root) {
     if (!f.is_open()) return;
 
     VATTU x;
-    char line[200];
+    char line[256];
 
-    while (f.getline(line, 200)) {
+    while (f.getline(line, 256)) {
         char *p = strtok(line, "|");
         if (p == NULL) continue;
-        strcpy(x.MAVT, p);
+        CopySafe(x.MAVT, p, MAX_MAVT);
 
         p = strtok(NULL, "|");
         if (p == NULL) continue;
-        strcpy(x.TENVT, p);
+        CopySafe(x.TENVT, p, MAX_TENVT);
 
         p = strtok(NULL, "|");
         if (p == NULL) continue;
-        strcpy(x.DVT, p);
+        CopySafe(x.DVT, p, MAX_DVT);
 
         p = strtok(NULL, "|");
         if (p == NULL) continue;
         x.SLT = atoi(p);
 
-        ThemVTVaoCay(root, x);
+        if (KiemTraMaVT(x.MAVT) && strlen(x.TENVT) > 0 && strlen(x.DVT) > 0 && x.SLT >= 0) {
+            ThemVTVaoCay(root, x);
+        }
     }
 
     f.close();
@@ -816,8 +934,8 @@ bool NhapThongTinVT(TREE root, VATTU &x) {
                 return false;
             }
             else if (c == 13) { // ENTER
+            	
                 x.MAVT[len] = '\0';
-
                 if (len == 0) {
                 	ThongBaoChung("Ma vat tu khong duoc rong.");
                     break;
@@ -1526,7 +1644,7 @@ NHAP_MANV:
                 }
 
                 // Neu ham cua em: true = khong trung, false = trung
-                if (!KiemTraTrungMANV(ds, maTam)) {
+                if (!KhongTrungMANV(ds, maTam)) {
                 	ThongBaoChung("Ma nhan vien da ton tai.");
                     break;
                 }
@@ -1783,23 +1901,7 @@ void CapNhatTonKho(TREE root, HOADON hd) {
     }
 }
 
-bool LaNamNhuan(int nam) {
-    return (nam % 400 == 0) || (nam % 4 == 0 && nam % 100 != 0);
-}
 
-bool KiemTraNgayHopLe(int ngay, int thang, int nam) {
-    if (nam < 1900 || nam > 9999) return false;
-    if (thang < 1 || thang > 12) return false;
-    if (ngay < 1) return false;
-
-    int soNgay[] = {0,31,28,31,30,31,30,31,31,30,31,30,31};
-    if (LaNamNhuan(nam)) soNgay[2] = 29;
-    return ngay <= soNgay[thang];
-}
-
-void DinhDangNgay(const Date &d, char out[]) {
-    sprintf(out, "%02d/%02d/%04d", d.day, d.month, d.year);
-}
 
 bool ParseLongKhongAm(const char s[], long &value) {
     if (strlen(s) == 0) return false;
@@ -2140,16 +2242,18 @@ bool ChonNhanVienLapHoaDon(DSNHANVIEN ds, NHANVIEN* &nvChon) {
 }
 
 int TaoMangVatTuLoc(TREE root, const char tuKhoa[], VATTU loc[]) {
-    VATTU a[1000];
+    VATTU a[MAXTEMP];
     int n = 0, nLoc = 0;
-    ChepCayRaMang(root, a, n);
+
+    ChepCayRaMang(root, a, n, MAXTEMP);
     SapXepTheoTen(a, n);
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n && nLoc < MAXTEMP; i++) {
         if (tuKhoa[0] == '\0' || BatDauBang(a[i].TENVT, tuKhoa)) {
             loc[nLoc++] = a[i];
         }
     }
+
     return nLoc;
 }
 
@@ -2264,7 +2368,7 @@ bool ChonVatTuTonKhoPopup(TREE root, char maVTOut[]) {
         }
         else if (c == 13) {
             if (nLoc > 0) {
-                strcpy(maVTOut, loc[selected].MAVT);
+                CopySafe(maVTOut, loc[selected].MAVT, MAX_MAVT);
                 return true;
             }
         }
@@ -2299,7 +2403,7 @@ bool ChonVatTuTonKhoPopup(TREE root, char maVTOut[]) {
 }
 
 bool NhapThongTinHD(DSNHANVIEN ds, NHANVIEN *nv, HOADON &hd) {
-    strcpy(hd.MANV, nv->MANV);
+    CopySafe(hd.MANV, nv->MANV, MAX_MANV);
     hd.dscthd.n = 0;
 
     VeFormHD();
@@ -2504,7 +2608,7 @@ void VeBangCTHD(const HOADON &hd) {
     clearLine(2, y + 2 + MAXCTHD + 1, 100);
     gotoxy(2, y + 2 + MAXCTHD + 1); cout << "Tong: " << fixed << setprecision(2) << (double)TongTriGiaHoaDon(hd);
     clearLine(2, y + 2 + MAXCTHD + 3, 120);
-    gotoxy(2, y + 2 + MAXCTHD + 3); cout << "[F2] Them CT  [F3] Sua CT  [F4] Xoa CT  [F5] Tim VT  [F9] Luu  [ESC] Thoat";
+    gotoxy(2, y + 2 + MAXCTHD + 3); cout << "[F2] Them CT  [F3] Sua CT  [F4] Xoa CT   [F9] Luu  [ESC] Thoat";
 }
 
 bool NhapThongTinCTHD(TREE root, HOADON &hd) {
@@ -2545,13 +2649,14 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
             int f = getch();
 
             if (f == 63) {   // F5
+            	XoaManHinh();
                 char maPopup[MAX_MAVT + 1] = "";
                 if (ChonVatTuTonKhoPopup(root, maPopup)) {
                     strcpy(ct.MAVT, maPopup);
                     len = (int)strlen(ct.MAVT);
 
                     // ve lai form sau popup
-                    clearArea(formX, 1, HD_FORM_W, HD_FORM_H);
+                    clearArea(formX, 1, HD_FORM_W	, HD_FORM_H);
                     gotoxy(formX, 1);  cout << "THEM CHI TIET HOA DON";
                     gotoxy(formX, 3);  cout << "| Ma VT    : [__________] |";
                     gotoxy(formX, 5);  cout << "| VAT      : [__________] |";
@@ -2574,7 +2679,6 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
                     gotoxy(formX, 5);  cout << "| VAT      : [__________] |";
                     gotoxy(formX, 7);  cout << "| So luong : [__________] |";
                     gotoxy(formX, 9);  cout << "| Don gia  : [__________] |";
-                    gotoxy(formX, 13); cout << "F5  : tim vat tu theo TENVT";
                     gotoxy(formX, 14); cout << "ENTER: sang o tiep theo";
                     gotoxy(formX, 15); cout << "ESC : huy thao tac";
 
@@ -3157,12 +3261,13 @@ void XoaVatTuUI(TREE &root, int &start, DSNHANVIEN &dsnv) {
                     if (xn == 'Y') {
                         if (KiemTraVatTuDaCoTrongHoaDon(dsnv, maVT)) {
 						    ThongBaoChung("Vat tu da co trong hoa don. Khong duoc xoa.");
+						    getch();
 						    break;
 						}
 						if (XoaVT(root, maVT)) {
 						    int nVT = 0;
 						    VATTU tmp[1000];
-						    ChepCayRaMang(root, tmp, nVT);
+						    ChepCayRaMang(root, tmp, nVT,MAXTEMP);
 						
 						    if (nVT == 0) start = 0;
 						    else if (start >= nVT) start = ((nVT - 1) / 15) * 15;
@@ -3611,9 +3716,10 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
                 if (c == 'y' || c == 'Y') {
 				    if (ds.nv[vt]->dshd != NULL) {
 				    	ThongBaoChung("Nhan vien da co hoa don. Khong duoc xoa.");
-				        getch();   // cho nguoi dung nhin thong bao
+				        getch();   
 				        len = 0;
 				        maNV[0] = '\0';
+				    	clearArea(70,5,30,2);
 				        clearLine(xMa, yMa, 10);
 				        gotoxy(xMa, yMa);
 				        continue; 
@@ -3632,11 +3738,11 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
 				
 				    InDanhSachNhanVien(ds, start);
 				    ThongBaoChung("Xoa nhan vien thanh cong.");
-				    getch();   // cho nhin thong bao
+				    getch();  
 				}
 				else {
 				 	ThongBaoChung("Da huy xoa.");
-				    getch();   // cho nhin thong bao
+				    getch();  
 				}
 				
 				break;
@@ -3722,16 +3828,16 @@ void InDanhSachNhanVienTheoTuKhoa(DSNHANVIEN ds, int start, const char tuKhoa[])
     cout << "Loc TEN: " << tuKhoa << "   [Backspace] Xoa 1 ky tu";
 }
 void InDanhSachVatTuTheoTuKhoa(TREE root, int start, const char tuKhoa[]) {
-    VATTU a[1000];
-    VATTU loc[1000];
+    VATTU a[MAXTEMP];
+    VATTU loc[MAXTEMP];
     int n = 0, nLoc = 0;
     int pageSize = 15;
     int y = 2;
 
-    ChepCayRaMang(root, a, n);
+    ChepCayRaMang(root, a, n, MAXTEMP);
     SapXepTheoTen(a, n);
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n && nLoc < MAXTEMP; i++) {
         if (BatDauBang(a[i].TENVT, tuKhoa)) {
             loc[nLoc++] = a[i];
         }
@@ -3750,7 +3856,8 @@ void InDanhSachVatTuTheoTuKhoa(TREE root, int start, const char tuKhoa[]) {
     if (nLoc == 0) {
         gotoxy(2, y + 3);
         cout << "Khong co vat tu nao co TENVT bat dau bang: " << tuKhoa;
-    } else {
+    } 
+    else {
         if (start < 0) start = 0;
         if (start >= nLoc) start = (nLoc - 1) / pageSize * pageSize;
 
@@ -3912,7 +4019,7 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
     tuKhoaLoc[0] = '\0';
 
     ITEM_HD a[MAXTEMP];
-    int n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a);
+    int n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a,MAXTEMP);
 
     VeDanhSachHoaDon(a, n, start, selected, tuKhoaLoc);
 
@@ -3928,7 +4035,7 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
                 InChiTietHoaDon(root, a[selected].hd, a[selected].nv);
 
                 // ve lai danh sach sau khi xem xong chi tiet
-                n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a);
+                n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a,MAXTEMP);
 
                 if (n == 0) {
                     selected = 0;
@@ -4002,7 +4109,7 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
                 tuKhoaLoc[lenLoc++] = (char)c;
                 tuKhoaLoc[lenLoc] = '\0';
 
-                n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a);
+                n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a,MAXTEMP);
                 selected = 0;
                 start = 0;
 
@@ -4014,7 +4121,7 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
                 lenLoc--;
                 tuKhoaLoc[lenLoc] = '\0';
 
-                n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a);
+                n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a,MAXTEMP);
                 selected = 0;
                 start = 0;
 
@@ -4205,7 +4312,7 @@ void QuanLyVatTu(TREE &root, VATTU &x,DSNHANVIEN dsnv) {
                 break;
             }
 
-            case 77: // ? ph?i
+            case 77: 
             {
                 start += pageSize;
 
@@ -4281,25 +4388,22 @@ void QuanLyChinh(TREE &root, DSNHANVIEN &dsnv,VATTU &x) {
 }
 
 int main() {
-	system("mode con cols=140 lines=40");
-	
+    system("mode con cols=140 lines=40");
+
     TREE root;
     InitTree(root);
+
     DSNHANVIEN dsnv;
     InitDSNV(dsnv);
-	LoadDSNVFromFile(dsnv);
+
+    LoadDSNVFromFile(dsnv);
     LoadVatTuFromFile(root);
 
-
-	HOADON hd;
-    int choice;
     VATTU x;
-    char ma[MAX_MAVT];
-	
-	QuanLyChinh(root,dsnv,x);
-    
+    QuanLyChinh(root, dsnv, x);
 
-
+    ClearTree(root);
+    ClearDSNV(dsnv);
 
     return 0;
 }
