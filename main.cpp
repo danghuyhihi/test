@@ -7,16 +7,16 @@
 #include <cctype>			//Khong Dung TimKiemMaVT ma van in duoc sLT, SOLUONG,....
 #include <cstdio>
 #include <conio.h>		
-#include <windows.h>		//doi sort vt sang quick or merge O(nlogn)
+#include <windows.h>
 							//Sua Phan F3 sua vt trong cthd,...
 using namespace std;		//Ve o tim hd theo soHD
 
 #define MAX_MAVT 10
-#define MAX_TENVT 20
+#define MAX_TENVT 50
 #define MAX_DVT 20
 #define MAX_MANV 10
-#define MAX_HO 10
-#define MAX_TEN 10
+#define MAX_HO 30
+#define MAX_TEN 15
 #define MAX_PHAI 10
 #define MAX_SOHD 20
 #define MAXCTHD 20
@@ -934,7 +934,6 @@ bool NhapThongTinVT(TREE root, VATTU &x) {
                 return false;
             }
             else if (c == 13) { // ENTER
-            	
                 x.MAVT[len] = '\0';
                 if (len == 0) {
                 	ThongBaoChung("Ma vat tu khong duoc rong.");
@@ -2076,10 +2075,12 @@ void VeDanhSachHoaDon(ITEM_HD a[], int n, int start, int selected, const char tu
 
     clearLine(2, y + pageSize + 4, 100);
     gotoxy(2, y + pageSize + 4);
-    cout << "[^][v] Len/xuong  [<-][->] Trang  [ENTER] Chon  [ESC] Thoat";
-
-    clearLine(2, y + pageSize + 5, 100);
-    gotoxy(2, y + pageSize + 5);
+    cout << "[^][v] Len/xuong  [<-][->] Trang"  ;
+	clearLine(2,y+pageSize + 5,100);
+	gotoxy(2,y+ pageSize +5);
+	cout<< "[ENTER] Chon  [ESC] Thoat	[F2]: Tim Theo SOHD";
+    clearLine(2, y + pageSize + 6, 100);
+    gotoxy(2, y + pageSize + 6);
     cout << "Loc TEN nguoi lap: " << tuKhoa << "   [Backspace] Xoa 1 ky tu";
 }
 int TaoMangNhanVienLoc(DSNHANVIEN ds, const char tuKhoa[], NHANVIEN *loc[]) {
@@ -3375,7 +3376,95 @@ int TimViTriNVTheoMa(DSNHANVIEN ds, const char ma[]) {
     }
     return -1;
 }
+bool TimHoaDonTheoSoHD(DSNHANVIEN ds, const char soHD[], DSHD &hdOut, NHANVIEN* &nvOut) {
+    for (int i = 0; i < ds.n; i++) {
+        for (DSHD p = ds.nv[i]->dshd; p != NULL; p = p->next) {
+            if (strcmp(p->data.SoHD, soHD) == 0) {
+                hdOut = p;
+                nvOut = ds.nv[i];
+                return true;
+            }
+        }
+    }
 
+    hdOut = NULL;
+    nvOut = NULL;
+    return false;
+}
+bool NhapSoHDTimKiem(char soHD[]) {
+    int x = 92;
+    int y = 5;
+    int len = 0;
+    int c;
+
+    clearArea(82, 3, 50, 8);
+
+    gotoxy(82, 3);
+    cout << "TIM HOA DON THEO SO HD";
+
+    gotoxy(82, 5);
+    cout << "| So HD: [____________________] |";
+
+    gotoxy(82, 8);
+    cout << "ENTER: tim   ESC: huy";
+
+    soHD[0] = '\0';
+    gotoxy(x, y);
+
+    while (true) {
+        c = getch();
+
+        if (c == 27) {
+            clearArea(82, 3, 50, 8);
+            XoaThongBaoChung();
+            return false;
+        }
+        else if (c == 13) {
+            soHD[len] = '\0';
+            XoaKhoangTrangDauCuoi(soHD);
+            UpperCase(soHD);
+
+            if (strlen(soHD) == 0) {
+                ThongBaoChung("So HD khong duoc rong.");
+                clearLine(x, y, 20);
+                len = 0;
+                soHD[0] = '\0';
+                gotoxy(x, y);
+                continue;
+            }
+
+            if (!KiemTraSoHoaDon(soHD)) {
+                ThongBaoChung("So HD khong hop le.");
+                clearLine(x, y, 20);
+                len = 0;
+                soHD[0] = '\0';
+                gotoxy(x, y);
+                continue;
+            }
+
+            return true;
+        }
+        else if (c == 8) {
+            if (len > 0) {
+                len--;
+                soHD[len] = '\0';
+                gotoxy(x + len, y);
+                cout << ' ';
+                gotoxy(x + len, y);
+            }
+        }
+        else if (isalnum((unsigned char)c) || c == '-' || c == '_' || c == '.') {
+            if (len < MAX_SOHD) {
+                c = toupper((unsigned char)c);
+                soHD[len++] = (char)c;
+                soHD[len] = '\0';
+
+                gotoxy(x + len - 1, y);
+                cout << (char)c;
+            }
+        }
+    }
+}
 void DuaNhanVienVeDungThuTu(DSNHANVIEN &ds, int vtCu) {
     NHANVIEN *tam = ds.nv[vtCu];
 
@@ -4051,10 +4140,40 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
         else if (c == 0 || c == 224 || c == -32) {
             int key = getch();
 
-            if (n <= 0) continue;
-
-            int oldSelected = selected;
-            int oldStart = start;
+		    // F2: Tim hoa don theo SoHD
+		    if (key == 60) {
+		        char soHD[MAX_SOHD + 1];
+		        DSHD hdTim = NULL;
+		        NHANVIEN *nvTim = NULL;
+		
+		        if (NhapSoHDTimKiem(soHD)) {
+		            if (TimHoaDonTheoSoHD(ds, soHD, hdTim, nvTim)) {
+		                InChiTietHoaDon(root, hdTim, nvTim);
+		            }
+		            else {
+		                ThongBaoChung("Khong tim thay So HD.");
+		                getch();
+		            }
+		        }
+		
+		        n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a, MAXTEMP);
+		        if (n == 0) {
+		            selected = 0;
+		            start = 0;
+		        }
+		        else {
+		            if (selected >= n) selected = n - 1;
+		            if (start > selected) start = (selected / pageSize) * pageSize;
+		        }
+		
+		        VeDanhSachHoaDon(a, n, start, selected, tuKhoaLoc);
+		        continue;
+		    }
+		
+		    if (n <= 0) continue;
+		
+		    int oldSelected = selected;
+		    int oldStart = start;
 
             if (key == 72) { // len
                 if (selected > 0) {
