@@ -100,6 +100,12 @@ struct ITEM_HD {			//mang tam HD dslk
     DSHD hd;
     NHANVIEN *nv;
 };
+struct DOANHTHU_VT {				//struct thong ke doanh thu
+    char MAVT[MAX_MAVT + 1];
+    char TENVT[MAX_TENVT + 1];
+    long double doanhThu;
+};
+
 
 int TaoMangHoaDon(DSNHANVIEN ds, ITEM_HD a[], int maxN) {
     int n = 0;
@@ -3342,13 +3348,13 @@ int MenuChinh() {
             return 0;
         }
 
-        if (c == '1' || c == '2' || c == '3' || c == '4') {
+        if (c == '1' || c == '2' || c == '3' || c == '4'|| c == '5') {
             cout << c;
             return c - '0';
         }
 
         gotoxy(35, 20);
-        cout << "Chi duoc nhan 1, 2, 3, 4 hoac ESC.";
+        cout << "Chi duoc nhan 1, 2, 3, 4, 5 hoac ESC.";
         Sleep(800);
     }
 }
@@ -4249,6 +4255,388 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
         }
     }
 }
+int DateToInt(const Date &d) {
+    return d.year * 10000 + d.month * 100 + d.day;
+}
+
+bool TrongKhoangNgay(const Date &d, const Date &tu, const Date &den) {
+    int x = DateToInt(d);
+    return DateToInt(tu) <= x && x <= DateToInt(den);
+}
+
+int TaoMangHoaDonTheoKhoangNgay(DSNHANVIEN ds, Date tu, Date den, ITEM_HD a[], int maxN) {
+    int n = 0;
+
+    for (int i = 0; i < ds.n && n < maxN; i++) {
+        for (DSHD p = ds.nv[i]->dshd; p != NULL && n < maxN; p = p->next) {
+            if (TrongKhoangNgay(p->data.Ngaylap, tu, den)) {
+                a[n].hd = p;
+                a[n].nv = ds.nv[i];
+                n++;
+            }
+        }
+    }
+
+    return n;
+}
+
+void VeBangThongKeHoaDon(ITEM_HD a[], int n, int start, int selected, bool daLoc, Date tu, Date den) {
+    int pageSize = 13;
+    int headerY = 8;
+    int dataY = 10;
+
+    clearArea(1, 1, 125, 28);
+
+    gotoxy(18, 1);
+    cout << "BANG LIET KE CAC HOA DON TRONG KHOANG THOI GIAN";
+
+    gotoxy(30, 3);
+    cout << "Tu ngay : [__/__/____]  Den ngay : [__/__/____]";
+
+    if (daLoc) {
+        char sTu[20], sDen[20];
+        DinhDangNgay(tu, sTu);
+        DinhDangNgay(den, sDen);
+
+        gotoxy(41, 3);
+        cout << sTu;
+
+        gotoxy(66, 3);
+        cout << sDen;
+    } else {
+        gotoxy(30, 5);
+        cout << "Bam F2 de nhap khoang thoi gian.";
+    }
+
+    gotoxy(2, headerY);   cout << " ";
+    gotoxy(4, headerY);   cout << "So HD";
+    gotoxy(27, headerY);  cout << "Ngay lap";
+    gotoxy(42, headerY);  cout << "Loai";
+    gotoxy(52, headerY);  cout << "Ho ten NV lap";
+    gotoxy(84, headerY);  cout << "Tri gia HD";
+
+    gotoxy(2, headerY + 1);
+    for (int i = 0; i < 105; i++) cout << '-';
+
+    XoaVungData(2, dataY, 110, pageSize);
+
+    if (!daLoc) {
+        gotoxy(2, dataY);
+        cout << "Chua co du lieu thong ke.";
+    }
+    else if (n == 0) {
+        gotoxy(2, dataY);
+        cout << "Khong co hoa don nao trong khoang thoi gian nay.";
+    }
+    else {
+        if (start < 0) start = 0;
+        if (start >= n) start = (n - 1) / pageSize * pageSize;
+
+        for (int i = start; i < start + pageSize && i < n; i++) {
+            int row = dataY + (i - start);
+
+            HOADON &hd = a[i].hd->data;
+            NHANVIEN *nv = a[i].nv;
+
+            char ngay[20];
+            DinhDangNgay(hd.Ngaylap, ngay);
+
+            char hoTen[80];
+            strcpy(hoTen, nv->HO);
+            strcat(hoTen, " ");
+            strcat(hoTen, nv->TEN);
+
+            char loai[3];
+            loai[0] = hd.Loai;
+            loai[1] = '\0';
+
+            char triGia[30];
+            sprintf(triGia, "%.0Lf", TongTriGiaHoaDon(hd));
+
+            gotoxy(2, row);
+            cout << (i == selected ? '>' : ' ');
+
+            printAt(4,  row, hd.SoHD, 20);
+            printAt(27, row, ngay, 12);
+            printAt(42, row, loai, 5);
+            printAt(52, row, hoTen, 28);
+            printAt(84, row, triGia, 18);
+        }
+    }
+
+    int totalPages = (n == 0 ? 1 : (n + pageSize - 1) / pageSize);
+    int currentPage = (n == 0 ? 1 : start / pageSize + 1);
+
+    gotoxy(2, 25);
+    cout << "Trang: " << currentPage << "/" << totalPages << "          ";
+
+    gotoxy(2, 26);
+    cout << "[F2] Loc ngay   [ENTER] Xem CTHD   [^][v] Len/xuong   [<-][->] Trang   [ESC] Thoat";
+}
+
+void VeFormNhapKhoangNgay() {
+    clearLine(30, 3, 70);
+    clearLine(30, 5, 70);
+
+    gotoxy(30, 3);
+    cout << "Tu ngay : [__/__/____]  Den ngay : [__/__/____]";
+
+    gotoxy(30, 5);
+    cout << "Nhap dang dd/mm/yyyy - ENTER xac nhan - ESC huy";
+}
+
+void VeNgayTaiO(int x, int y, const char digits[]) {
+    char s[11];
+    int len = strlen(digits);
+
+    for (int i = 0; i < 10; i++) s[i] = '_';
+    s[2] = '/';
+    s[5] = '/';
+    s[10] = '\0';
+
+    for (int i = 0; i < len && i < 8; i++) {
+        if (i < 2) s[i] = digits[i];
+        else if (i < 4) s[i + 1] = digits[i];
+        else s[i + 2] = digits[i];
+    }
+
+    gotoxy(x, y);
+    cout << s;
+}
+
+int ViTriConTroNgay(int x, int len) {
+    if (len <= 2) return x + len;
+    if (len <= 4) return x + len + 1;
+    return x + len + 2;
+}
+
+bool NhapNgayAutoSlash(int x, int y, Date &d) {
+    char digits[9];
+    int len = 0;
+    digits[0] = '\0';
+
+    VeNgayTaiO(x, y, digits);
+    gotoxy(x, y);
+
+    while (true) {
+        int c = getch();
+
+        if (c == 27) {
+            return false;
+        }
+        else if (c == 13) {
+            if (len != 8) {
+                ThongBaoChung("Ngay phai du 8 chu so dd/mm/yyyy.");
+                continue;
+            }
+
+            char sNgay[3], sThang[3], sNam[5];
+
+            sNgay[0] = digits[0];
+            sNgay[1] = digits[1];
+            sNgay[2] = '\0';
+
+            sThang[0] = digits[2];
+            sThang[1] = digits[3];
+            sThang[2] = '\0';
+
+            sNam[0] = digits[4];
+            sNam[1] = digits[5];
+            sNam[2] = digits[6];
+            sNam[3] = digits[7];
+            sNam[4] = '\0';
+
+            d.day = atoi(sNgay);
+            d.month = atoi(sThang);
+            d.year = atoi(sNam);
+
+            return true;
+        }
+        else if (c == 8) {
+            if (len > 0) {
+                len--;
+                digits[len] = '\0';
+                VeNgayTaiO(x, y, digits);
+                gotoxy(ViTriConTroNgay(x, len), y);
+            }
+        }
+        else if (isdigit((unsigned char)c)) {
+            if (len < 8) {
+                digits[len++] = (char)c;
+                digits[len] = '\0';
+                VeNgayTaiO(x, y, digits);
+                gotoxy(ViTriConTroNgay(x, len), y);
+            }
+        }
+    }
+}
+
+bool NhapKhoangNgayThongKe(Date &tu, Date &den) {
+    while (true) {
+        VeFormNhapKhoangNgay();
+        XoaThongBaoChung();
+
+        if (!NhapNgayAutoSlash(41, 3, tu)) {
+            XoaThongBaoChung();
+            return false;
+        }
+
+        if (!NhapNgayAutoSlash(66, 3, den)) {
+            XoaThongBaoChung();
+            return false;
+        }
+
+        if (!KiemTraNgayHopLe(tu.day, tu.month, tu.year)) {
+            ThongBaoChung("Tu ngay khong hop le.");
+            getch();
+            continue;
+        }
+
+        if (!KiemTraNgayHopLe(den.day, den.month, den.year)) {
+            ThongBaoChung("Den ngay khong hop le.");
+            getch();
+            continue;
+        }
+
+        if (DateToInt(tu) > DateToInt(den)) {
+            ThongBaoChung("Tu ngay khong duoc lon hon den ngay.");
+            getch();
+            continue;
+        }
+
+        XoaThongBaoChung();
+        return true;
+    }
+}
+
+void ThongKeHoaDonKhoangNgayUI(TREE root, DSNHANVIEN ds) {
+    const int pageSize = 13;
+    const int dataY = 10;
+
+    ITEM_HD a[MAXTEMP];
+    int n = 0;
+    int selected = 0;
+    int start = 0;
+
+    Date tu, den;
+    bool daLoc = false;
+
+    VeBangThongKeHoaDon(a, n, start, selected, daLoc, tu, den);
+
+    while (true) {
+        int c = getch();
+
+        if (c == 27) {
+            XoaManHinh();
+            return;
+        }
+        else if (c == 13) {
+            if (daLoc && n > 0) {
+                InChiTietHoaDon(root, a[selected].hd, a[selected].nv);
+                VeBangThongKeHoaDon(a, n, start, selected, daLoc, tu, den);
+            }
+        }
+        else if (c == 0 || c == 224 || c == -32) {
+            int key = getch();
+
+            if (key == 60) { // F2
+                if (NhapKhoangNgayThongKe(tu, den)) {
+                    n = TaoMangHoaDonTheoKhoangNgay(ds, tu, den, a, MAXTEMP);
+                    selected = 0;
+                    start = 0;
+                    daLoc = true;
+                }
+
+                VeBangThongKeHoaDon(a, n, start, selected, daLoc, tu, den);
+                continue;
+            }
+
+            if (!daLoc || n <= 0) continue;
+
+            int oldSelected = selected;
+            int oldStart = start;
+
+            if (key == 72) { // mui ten len
+                if (selected > 0) {
+                    selected--;
+                    if (selected < start) {
+                        start -= pageSize;
+                        if (start < 0) start = 0;
+                    }
+                }
+            }
+            else if (key == 80) { // mui ten xuong
+                if (selected < n - 1) {
+                    selected++;
+                    if (selected >= start + pageSize) {
+                        start += pageSize;
+                    }
+                }
+            }
+            else if (key == 75) { // trang truoc
+                if (start - pageSize >= 0) {
+                    int offset = selected - start;
+                    start -= pageSize;
+                    selected = start + offset;
+                    if (selected >= n) selected = n - 1;
+                }
+            }
+            else if (key == 77) { // trang sau
+                if (start + pageSize < n) {
+                    int offset = selected - start;
+                    start += pageSize;
+                    selected = start + offset;
+                    if (selected >= n) selected = n - 1;
+                }
+            }
+
+            if (start != oldStart) {
+                VeBangThongKeHoaDon(a, n, start, selected, daLoc, tu, den);
+            }
+            else if (selected != oldSelected) {
+                int oldRow = dataY + (oldSelected - start);
+                int newRow = dataY  + (selected - start);
+
+                gotoxy(2, oldRow); cout << ' ';
+                gotoxy(2, newRow); cout << '>';
+            }
+        }
+    }
+}
+
+
+int MenuThongKe() {
+    while (true) {
+		XoaManHinh();
+		
+		    int x = 35;
+		    int y = 8;
+		
+		    gotoxy(x, y);     cout << "========================";
+		    gotoxy(x, y + 1); cout << "        THONG KE        ";
+		    gotoxy(x, y + 2); cout << "========================";
+		
+		    gotoxy(x, y + 4); cout << "1. Liet ke hoa don theo khoang ngay";
+		    gotoxy(x, y + 5); cout << "2. Top 10 vat tu doanh thu cao nhat";
+		    gotoxy(x, y + 7); cout << "ESC. Quay lai";
+		
+		    gotoxy(x, y + 9); cout << "Chon chuc nang: ";
+        int c = getch();
+
+        if (c == 27) return 0;
+
+        if (c == '1' || c == '2') {
+            cout << (char)c;
+            return c - '0';
+        }
+
+        gotoxy(35, 20);
+        cout << "Chi duoc nhan 1, 2 hoac ESC.";
+        Sleep(800);
+    }
+}
+
+
 void NV(DSNHANVIEN &dsnv) {
     int start = 0;
     int pageSize = 15;
@@ -4364,6 +4752,250 @@ void NV(DSNHANVIEN &dsnv) {
         }
     }
 }
+int DemSoVatTu(TREE root) {				
+    if (root == NULL) return 0;
+
+    return 1
+         + DemSoVatTu(root->left)
+         + DemSoVatTu(root->right);
+}
+void CayVatTuSangMangDoanhThu(
+    TREE root,
+    DOANHTHU_VT a[],
+    int &n
+) {
+    if (root == NULL) return;
+
+    CayVatTuSangMangDoanhThu(root->left, a, n);		//duyet lnr sang mang
+
+    strcpy(a[n].MAVT, root->data.MAVT);
+    strcpy(a[n].TENVT, root->data.TENVT);
+    a[n].doanhThu = 0;
+
+    n++;
+
+    CayVatTuSangMangDoanhThu(root->right, a, n);
+}
+int TimKiemNhiPhanVT(
+    DOANHTHU_VT a[],
+    int n,
+    const char maVT[]
+) {
+    int left = 0;
+    int right = n - 1;
+
+    while (left <= right) {
+        int mid = (left + right) / 2;
+
+        int cmp = strcmp(maVT, a[mid].MAVT);
+
+        if (cmp == 0)
+            return mid;
+
+        if (cmp < 0)
+            right = mid - 1;
+        else
+            left = mid + 1;
+    }
+
+    return -1;
+}
+void CongDonDoanhThu(
+    TREE rootVT,
+    DSNHANVIEN ds,
+    Date tuNgay,
+    Date denNgay,
+    DOANHTHU_VT a[],
+    int n
+) {
+    for (int i = 0; i < ds.n; i++) {
+
+        NHANVIEN *nv = ds.nv[i];
+
+        for (DSHD p = nv->dshd; p != NULL; p = p->next) {
+
+            HOADON &hd = p->data;
+
+            if (hd.Loai != 'X')
+                continue;
+
+            if (!TrongKhoangNgay(
+                    hd.Ngaylap,
+                    tuNgay,
+                    denNgay))
+                continue;
+
+            for (int j = 0; j < hd.dscthd.n; j++) {
+
+                CT_HOADON &ct = hd.dscthd.ct[j];
+
+                int pos =
+                    TimKiemNhiPhanVT(
+                        a,
+                        n,
+                        ct.MAVT
+                    );
+
+                if (pos == -1)
+                    continue;
+
+                a[pos].doanhThu +=
+                    ThanhTienCT(ct);
+            }
+        }
+    }
+}
+void ChenTop10(
+    DOANHTHU_VT top[],
+    int &nTop,
+    DOANHTHU_VT x
+) {
+    if (x.doanhThu <= 0)
+        return;
+
+    int pos;
+
+    if (nTop < 10) {
+        pos = nTop;
+        nTop++;
+    }
+    else {
+        if (x.doanhThu <= top[9].doanhThu)
+            return;
+
+        pos = 9;
+    }
+
+    while (
+        pos > 0 &&
+        top[pos - 1].doanhThu < x.doanhThu
+    ) {
+        top[pos] = top[pos - 1];
+        pos--;
+    }
+
+    top[pos] = x;
+}
+void TaoTop10(
+    DOANHTHU_VT a[],
+    int n,
+    DOANHTHU_VT top[],
+    int &nTop
+) {
+    nTop = 0;
+
+    for (int i = 0; i < n; i++) {
+        ChenTop10(
+            top,
+            nTop,
+            a[i]
+        );
+    }
+}
+void VeBangTop10DoanhThu(DOANHTHU_VT top[], int nTop, Date tu, Date den) {
+    XoaManHinh();
+
+    char sTu[20], sDen[20];
+    DinhDangNgay(tu, sTu);
+    DinhDangNgay(den, sDen);
+
+    gotoxy(25, 1);
+    cout << "TOP 10 VAT TU CO DOANH THU CAO NHAT";
+
+    gotoxy(30, 3);
+    cout << "Tu ngay : " << sTu << "    Den ngay : " << sDen;
+
+    gotoxy(2, 6);   cout << "STT";
+    gotoxy(8, 6);   cout << "Ma VT";
+    gotoxy(22, 6);  cout << "Ten vat tu";
+    gotoxy(62, 6);  cout << "Doanh thu";
+
+    gotoxy(2, 7);
+    for (int i = 0; i < 90; i++) cout << '-';
+
+    if (nTop == 0) {
+        gotoxy(2, 9);
+        cout << "Khong co vat tu nao co doanh thu trong khoang thoi gian nay.";
+    } else {
+        for (int i = 0; i < nTop; i++) {
+            int row = 8 + i;
+
+            char stt[10];
+            sprintf(stt, "%d", i + 1);
+
+            char doanhThu[40];
+            sprintf(doanhThu, "%.0Lf", top[i].doanhThu);
+
+            printAt(2,  row, stt, 4);
+            printAt(8,  row, top[i].MAVT, 10);
+            printAt(22, row, top[i].TENVT, 35);
+            printAt(62, row, doanhThu, 25);
+        }
+    }
+
+    gotoxy(2, 22);
+    cout << "Nhan phim bat ky de quay lai...";
+    getch();
+}
+void Top10VatTuDoanhThuUI(TREE root, DSNHANVIEN ds) {
+    if (root == NULL) {
+        ThongBaoChung("Danh sach vat tu rong.");
+        getch();
+        return;
+    }
+
+    Date tu, den;
+
+    XoaManHinh();
+    gotoxy(25, 1);
+    cout << "TOP 10 VAT TU CO DOANH THU CAO NHAT";
+
+    if (!NhapKhoangNgayThongKe(tu, den)) {
+        XoaManHinh();
+        return;
+    }
+
+    int soVT = DemSoVatTu(root);
+
+    if (soVT <= 0) {
+        ThongBaoChung("Danh sach vat tu rong.");
+        getch();
+        return;
+    }
+
+    DOANHTHU_VT *a = new DOANHTHU_VT[soVT];
+    int n = 0;
+
+    CayVatTuSangMangDoanhThu(root, a, n);
+
+    CongDonDoanhThu(root,ds,tu,den,a,n);
+
+    DOANHTHU_VT top[10];
+    int nTop = 0;
+
+    TaoTop10(a, n, top, nTop);
+
+    VeBangTop10DoanhThu(top, nTop, tu, den);
+
+    delete[] a;
+}
+void ThongKeUI(TREE root, DSNHANVIEN ds) {
+    while (true) {
+        int chon = MenuThongKe();
+
+        if (chon == 0) {
+            XoaManHinh();
+            return;
+        }
+
+        if (chon == 1) {
+            ThongKeHoaDonKhoangNgayUI(root, ds);
+        }
+        else if (chon == 2) {
+            Top10VatTuDoanhThuUI(root, ds);
+        }
+    }
+}
 void QuanLyVatTu(TREE &root, VATTU &x,DSNHANVIEN dsnv) {
     int start = 0;
     int pageSize = 15;
@@ -4418,8 +5050,7 @@ void QuanLyVatTu(TREE &root, VATTU &x,DSNHANVIEN dsnv) {
                 else InDanhSachVatTuTonKho(root, start);
                 break;
             }
-
-            case 75: // ? tr�i
+            case 75: 
             {
                 start -= pageSize;
                 if (start < 0) start = 0;
@@ -4502,8 +5133,11 @@ void QuanLyChinh(TREE &root, DSNHANVIEN &dsnv,VATTU &x) {
             case 4:
             	InHoaDonUI(root,dsnv);
             	break;
-        }
+	        case 5:
+			    ThongKeUI(root, dsnv);
+			    break;
     }
+}
 }
 
 int main() {
@@ -4521,6 +5155,7 @@ int main() {
     VATTU x;
     QuanLyChinh(root, dsnv, x);
 
+		
     ClearTree(root);
     ClearDSNV(dsnv);
 
