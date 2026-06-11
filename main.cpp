@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <conio.h>		
 #include <windows.h>
-							//Sua Phan F3 sua vt trong cthd,...
+						
 using namespace std;		//Ve o tim hd theo soHD
 
 #define MAX_MAVT 10
@@ -25,9 +25,9 @@ using namespace std;		//Ve o tim hd theo soHD
 
 const int formX = 80; 	//o ve chitiet hoa don
 const int inputX = 94; //tro nhap chi tiet hoa don
-const int TB_X = 80;
-const int TB_Y = 20;
-const int TB_W = 60;
+const int TB_X = 2;
+const int TB_Y = 30;
+const int TB_W = 60;	//Loi giam dien F5 nhap cthd
 
 const int HD_FORM_X = 75;
 const int HD_INPUT_X = 86;
@@ -3330,8 +3330,9 @@ void VeMenuChinh() {
     gotoxy(x, y + 5); cout << "2. NHAN VIEN";
     gotoxy(x, y + 6); cout << "3. HOA DON";
     gotoxy(x, y + 7); cout << "4. IN HOA DON";
+    gotoxy(x, y + 8); cout << "5. THONG KE";
 
-    gotoxy(x, y + 8); cout << "ESC. THOAT";
+    gotoxy(x, y + 9); cout << "ESC. THOAT";
     gotoxy(x, y + 10); cout << "Chon chuc nang: ";
 }
 int MenuChinh() {

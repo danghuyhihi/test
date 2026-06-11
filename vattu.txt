@@ -6,5 +6,5 @@ VT04|Ghe|chiec|10000
 VT05|Tai Nghe|cai|185
 VT09|But Muc|chiec|2800
 VT10|Sach|quyen|1000
-VT11|Chuot|cai|100
-VTP1|But Chi Kim|cai|10000
+VT11|Chuot|cai|0
+VTP1|But Chi Kim|cai|10700
