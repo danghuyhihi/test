@@ -6,10 +6,11 @@
 #include <cstdlib>			
 #include <cctype>			//Khong Dung TimKiemMaVT ma van in duoc sLT, SOLUONG,....
 #include <cstdio>
-#include <conio.h>		
+#include <conio.h>			//VT trong CTHD bi trung, khi xuat phai cap nhat slt, 
+							//khi them vt bang ma thi bi trung, con chon = F5 thi ko bi
 #include <windows.h>
 						
-using namespace std;		//Ve o tim hd theo soHD
+using namespace std;	
 
 #define MAX_MAVT 10
 #define MAX_TENVT 50
@@ -533,7 +534,7 @@ NodeHD* TaoNodeHD(HOADON hd) {
 }
 
 
-int ThemVTVaoCay(TREE &root, VATTU x) {
+	int ThemVTVaoCay(TREE &root, VATTU x) {
     if (root == NULL) {
         root = TaoNodeVT(x);
         return 1;
@@ -1957,6 +1958,31 @@ int TimCTHDTheoMa(const HOADON &hd, const char maVT[]) {
     }
     return -1;
 }
+int TongSoLuongXuatTam(const HOADON &hd, const char maVT[], int boQuaViTri = -1) {
+    int tong = 0;
+
+    for (int i = 0; i < hd.dscthd.n; i++) {
+        if (i == boQuaViTri) continue;
+
+        if (strcmp(hd.dscthd.ct[i].MAVT, maVT) == 0) {
+            tong += hd.dscthd.ct[i].Soluong;
+        }
+    }
+
+    return tong;
+}
+
+int TonKhaDungTam(TREE root, const HOADON &hd, const char maVT[], int boQuaViTri = -1) {
+    TREE pVT = TimVT(root, maVT);
+
+    if (pVT == NULL) return -1;
+
+    if (hd.Loai == 'N') {
+        return pVT->data.SLT;
+    }
+
+    return pVT->data.SLT - TongSoLuongXuatTam(hd, maVT, boQuaViTri);
+}
 
 long double ThanhTienCT(const CT_HOADON &ct) {
     return (long double)ct.Soluong * (long double)ct.Dongia * (1.0L + (long double)ct.VAT / 100.0L);
@@ -2332,7 +2358,6 @@ bool ChonVatTuTonKhoPopup(TREE root, char maVTOut[]) {
 
     while (true) {
         int c = getch();
-
         if (c == 0 || c == 224 || c == -32) {
             int f = getch();
 
@@ -2404,6 +2429,7 @@ bool ChonVatTuTonKhoPopup(TREE root, char maVTOut[]) {
             }
         }
         else if (c == 27) {
+        	XoaManHinh();
             return false;
         }
     }
@@ -2658,6 +2684,7 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
             if (f == 63) {   // F5
             	XoaManHinh();
                 char maPopup[MAX_MAVT + 1] = "";
+                
                 if (ChonVatTuTonKhoPopup(root, maPopup)) {
                     strcpy(ct.MAVT, maPopup);
                     len = (int)strlen(ct.MAVT);
@@ -2679,21 +2706,10 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
                     // F5 da chon duoc ma thi khong cho sua tiep MAVT nua
                     break;
                 } else {
-                    // neu dong popup thi ve lai form nhap
-                    clearArea(formX, 1, HD_FORM_W, HD_FORM_H);
-                    gotoxy(formX, 1);  cout << "THEM CHI TIET HOA DON";
-                    gotoxy(formX, 3);  cout << "| Ma VT    : [__________] |";
-                    gotoxy(formX, 5);  cout << "| VAT      : [__________] |";
-                    gotoxy(formX, 7);  cout << "| So luong : [__________] |";
-                    gotoxy(formX, 9);  cout << "| Don gia  : [__________] |";
-                    gotoxy(formX, 14); cout << "ENTER: sang o tiep theo";
-                    gotoxy(formX, 15); cout << "ESC : huy thao tac";
-
-                    gotoxy(inputX, 3);
-                    cout << ct.MAVT;
-                    gotoxy(inputX + len, 3);
+                    break;
                 }
             }
+            
         }
         else if (c == 13) {
             XoaKhoangTrangDauCuoi(ct.MAVT);
@@ -2717,14 +2733,14 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
                 continue;
             }
 
-            if (TimCTHDTheoMa(hd, ct.MAVT) != -1) {
-                ThongBaoHD("Ma VT da ton tai trong hoa don.");
-                len = 0;
-                ct.MAVT[0] = '\0';
-                gotoxy(formX, 3); cout << "| Ma VT    : [__________] |";
-                gotoxy(inputX, 3);
-                continue;
-            }
+//            if (TimCTHDTheoMa(hd, ct.MAVT) != -1) {
+//                ThongBaoHD("Ma VT da ton tai trong hoa don.");
+//                len = 0;
+//                ct.MAVT[0] = '\0';
+//                gotoxy(formX, 3); cout << "| Ma VT    : [__________] |";
+//                gotoxy(inputX, 3);
+//                continue;
+//            }
 
             break;
         }
@@ -2779,12 +2795,26 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
         }
 
         TREE pVT = TimVT(root, ct.MAVT);
-        if (hd.Loai == 'X' && pVT != NULL && ct.Soluong > pVT->data.SLT) {
-            char msg[80];
-            sprintf(msg, "Khong du hang. Ton hien co: %d", pVT->data.SLT);
-            ThongBaoHD(msg);
-            continue;
-        }
+
+		if (pVT == NULL) {
+		    ThongBaoHD("Ma VT khong ton tai.");
+		    continue;
+		}
+		
+		if (hd.Loai == 'X') {
+		    int tonKD = TonKhaDungTam(root, hd, ct.MAVT);
+		
+		    clearLine(formX, 17, 45);
+		    gotoxy(formX, 17);
+		    cout << "Ton kha dung: " << tonKD;
+		
+		    if (ct.Soluong > tonKD) {
+		        char msg[100];
+		        sprintf(msg, "Khong du hang. Ton kha dung: %d", tonKD);
+		        ThongBaoHD(msg);
+		        continue;
+		    }
+		}
         break;
     }
 
@@ -2906,23 +2936,16 @@ bool SuaCTHDUI(TREE root, HOADON &hd) {
                         continue;
                     }
 
-                    TREE pVT = TimVT(root, hd.dscthd.ct[vt].MAVT);
-
-                    // Điểm cần nghĩ thêm:
-                    // nếu đây là hóa đơn X và trước đó số lượng cũ là old,
-                    // thì thực ch	ất chỉ nên kiểm tra phần tăng thêm:
-                    // slMoi - old <= ton hien co
-                    if (hd.Loai == 'X' && pVT != NULL) {
-                        int oldSL = hd.dscthd.ct[vt].Soluong;
-                        int chenhlech = slMoi - oldSL;
-
-                        if (chenhlech > 0 && chenhlech > pVT->data.SLT) {
-                            char msg[80];
-                            sprintf(msg, "Khong du hang. Ton hien co: %d", pVT->data.SLT);
-                            ThongBaoHD(msg);
-                            continue;
-                        }
-                    }
+                    if (hd.Loai == 'X') {
+				    int tonKD = TonKhaDungTam(root, hd, hd.dscthd.ct[vt].MAVT, vt);
+				
+				    if (slMoi > tonKD) {
+				        char msg[100];
+				        sprintf(msg, "Khong du hang. Ton kha dung: %d", tonKD);
+				        ThongBaoHD(msg);
+				        continue;
+				    }
+				}
 
                     hd.dscthd.ct[vt].Soluong = slMoi;
                     ThongBaoHD("Da cap nhat so luong.");
@@ -3073,100 +3096,101 @@ void LapCTHDUI(TREE &root, DSNHANVIEN &dsnv, NHANVIEN *nv, HOADON &hd) {
             else if (f == 62) {
                 XoaCTHDUI(hd);
             }
-            else if (f == 63) {
- 			char maVT[MAX_MAVT + 1] = "";
-
-		    if (ChonVatTuTonKhoPopup(root, maVT)) {
-		        if (TimCTHDTheoMa(hd, maVT) != -1) {
-		            ThongBaoHD("MAVT da ton tai trong hoa don.");
-		            continue;
-		        }
-		
-		        if (hd.dscthd.n >= MAXCTHD) {
-		            ThongBaoHD("Hoa don da du 20 chi tiet.");
-		            getch();
-		            continue;
-		        }
-		
-		        CT_HOADON ct;
-		        strcpy(ct.MAVT, maVT);
-		        ct.Soluong = 0;
-		        ct.Dongia = 0;
-		        ct.VAT = 0;
-		
-		        clearArea(formX, 1, HD_FORM_W, HD_FORM_H);
-		        gotoxy(formX, 1);  cout << "THEM CHI TIET HOA DON";
-		        gotoxy(formX, 3);  cout << "| Ma VT    : [__________] |";
-		        gotoxy(formX, 5);  cout << "| VAT      : [__________] |";
-		        gotoxy(formX, 7);  cout << "| So luong : [__________] |";
-		        gotoxy(formX, 9);  cout << "| Don gia  : [__________] |";
-		        gotoxy(formX, 13); cout << "F5  : tim vat tu theo TENVT";
-		        gotoxy(formX, 14); cout << "ENTER: sang o tiep theo";
-		        gotoxy(formX, 15); cout << "ESC : huy thao tac";
-		
-		        gotoxy(inputX, 3);
-		        cout << ct.MAVT;
-		
-		        char sVAT[20] = "";
-		        while (true) {
-		            clearLine(inputX, 5, 10);
-		            gotoxy(inputX, 5);
-		
-		            if (!NhapKyTuTaiO(inputX, 5, 10, sVAT, true, true))
-		                break;
-		
-		            if (!ParseFloatVAT(sVAT, ct.VAT)) {
-		                ThongBaoHD("VAT phai tu 0 den 100.");
-		                continue;
-		            }
-		            break;
-		        }
-		        if (!ParseFloatVAT(sVAT, ct.VAT)) continue;
-		
-		        char sSL[20] = "";
-		        while (true) {
-		            clearLine(inputX, 7, 10);
-		            gotoxy(inputX, 7);
-		
-		            if (!NhapKyTuTaiO(inputX, 7, 10, sSL, true, false))
-		                break;
-		
-		            if (!ParseIntDuong(sSL, ct.Soluong)) {
-		                ThongBaoHD("So luong phai > 0.");
-		                continue;
-		            }
-		
-		            TREE pVT = TimVT(root, maVT);
-		            if (hd.Loai == 'X' && pVT != NULL && ct.Soluong > pVT->data.SLT) {
-		                char msg[80];
-		                sprintf(msg, "Khong du hang. Ton hien co: %d", pVT->data.SLT);
-		                ThongBaoHD(msg);
-		                continue;
-		            }
-		            break;
-		        }
-		        if (!ParseIntDuong(sSL, ct.Soluong)) continue;
-		
-		        char sDG[20] = "";
-		        while (true) {
-		            clearLine(inputX, 9, 10);
-		            gotoxy(inputX, 9);
-		
-		            if (!NhapKyTuTaiO(inputX, 9, 10, sDG, true, false))
-		                break;
-		
-		            if (!ParseLongKhongAm(sDG, ct.Dongia)) {
-		                ThongBaoHD("Don gia khong hop le.");
-		                continue;
-		            }
-		            break;
-		        }
-		        if (!ParseLongKhongAm(sDG, ct.Dongia)) continue;
-		
-		        hd.dscthd.ct[hd.dscthd.n++] = ct;
-		        ThongBaoHD("Them chi tiet hoa don thanh cong.");
-		    }
-            }
+//            else if (f == 63) {			//Chua can thiet lam
+//            XoaManHinh();
+// 			char maVT[MAX_MAVT + 1] = "";
+//
+//		    if (ChonVatTuTonKhoPopup(root, maVT)) {
+//		        if (TimCTHDTheoMa(hd, maVT) != -1) {
+//		            ThongBaoHD("MAVT da ton tai trong hoa don.");
+//		            continue;
+//		        }
+//		
+//		        if (hd.dscthd.n >= MAXCTHD) {
+//		            ThongBaoHD("Hoa don da du 20 chi tiet.");
+//		            getch();
+//		            continue;
+//		        }
+//		
+//		        CT_HOADON ct;
+//		        strcpy(ct.MAVT, maVT);
+//		        ct.Soluong = 0;
+//		        ct.Dongia = 0;
+//		        ct.VAT = 0;
+//		
+//		        clearArea(formX, 1, HD_FORM_W, HD_FORM_H);
+//		        gotoxy(formX, 1);  cout << "THEM CHI TIET HOA DON";
+//		        gotoxy(formX, 3);  cout << "| Ma VT    : [__________] |";
+//		        gotoxy(formX, 5);  cout << "| VAT      : [__________] |";
+//		        gotoxy(formX, 7);  cout << "| So luong : [__________] |";
+//		        gotoxy(formX, 9);  cout << "| Don gia  : [__________] |";
+//		        gotoxy(formX, 13); cout << "F5  : tim vat tu theo TENVT";
+//		        gotoxy(formX, 14); cout << "ENTER: sang o tiep theo";
+//		        gotoxy(formX, 15); cout << "ESC : huy thao tac";
+//		
+//		        gotoxy(inputX, 3);
+//		        cout << ct.MAVT;
+//		
+//		        char sVAT[20] = "";
+//		        while (true) {
+//		            clearLine(inputX, 5, 10);
+//		            gotoxy(inputX, 5);
+//		
+//		            if (!NhapKyTuTaiO(inputX, 5, 10, sVAT, true, true))
+//		                break;
+//		
+//		            if (!ParseFloatVAT(sVAT, ct.VAT)) {
+//		                ThongBaoHD("VAT phai tu 0 den 100.");
+//		                continue;
+//		            }
+//		            break;
+//		        }
+//		        if (!ParseFloatVAT(sVAT, ct.VAT)) continue;
+//		
+//		        char sSL[20] = "";
+//		        while (true) {
+//		            clearLine(inputX, 7, 10);
+//		            gotoxy(inputX, 7);
+//		
+//		            if (!NhapKyTuTaiO(inputX, 7, 10, sSL, true, false))
+//		                break;
+//		
+//		            if (!ParseIntDuong(sSL, ct.Soluong)) {
+//		                ThongBaoHD("So luong phai > 0.");
+//		                continue;
+//		            }
+//		
+//		            TREE pVT = TimVT(root, maVT);
+//		            if (hd.Loai == 'X' && pVT != NULL && ct.Soluong > pVT->data.SLT) {
+//		                char msg[80];
+//		                sprintf(msg, "Khong du hang. Ton hien co: %d", pVT->data.SLT);
+//		                ThongBaoHD(msg);
+//		                continue;
+//		            }
+//		            break;
+//		        }
+//		        if (!ParseIntDuong(sSL, ct.Soluong)) continue;
+//		
+//		        char sDG[20] = "";
+//		        while (true) {
+//		            clearLine(inputX, 9, 10);
+//		            gotoxy(inputX, 9);
+//		
+//		            if (!NhapKyTuTaiO(inputX, 9, 10, sDG, true, false))
+//		                break;
+//		
+//		            if (!ParseLongKhongAm(sDG, ct.Dongia)) {
+//		                ThongBaoHD("Don gia khong hop le.");
+//		                continue;
+//		            }
+//		            break;
+//		        }
+//		        if (!ParseLongKhongAm(sDG, ct.Dongia)) continue;
+//		
+//		        hd.dscthd.ct[hd.dscthd.n++] = ct;
+//		        ThongBaoHD("Them chi tiet hoa don thanh cong.");
+//		    }
+//            }
             else if (f == 67) {
                 if (LuuHoaDonDangLap(root, dsnv, nv, hd)) {
                     Sleep(600);
