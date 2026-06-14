@@ -7,8 +7,8 @@
 #include <cctype>			//Khong Dung TimKiemMaVT ma van in duoc sLT, SOLUONG,....
 #include <cstdio>
 #include <conio.h>			//VT trong CTHD bi trung, khi xuat phai cap nhat slt, 
-							//khi them vt bang ma thi bi trung, con chon = F5 thi ko bi
-#include <windows.h>
+#include <ctime>							//khi them vt bang ma thi bi trung, con chon = F5 thi ko bi
+#include <windows.h>		//cap nhat real time, ko cho nhap truoc tuong lai
 						
 using namespace std;	
 
@@ -651,7 +651,26 @@ bool KiemTraNgayHopLe(int ngay, int thang, int nam) {
     if (LaNamNhuan(nam)) soNgay[2] = 29;
     return ngay <= soNgay[thang];
 }
+int DateToInt(const Date &d) {
+    return d.year * 10000 + d.month * 100 + d.day;
+}
 
+Date LayNgayHienTai() {
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+
+    Date d;
+    d.day = ltm->tm_mday;
+    d.month = ltm->tm_mon + 1;
+    d.year = ltm->tm_year + 1900;
+
+    return d;
+}
+
+bool LaNgayTuongLai(const Date &d) {
+    Date today = LayNgayHienTai();
+    return DateToInt(d) > DateToInt(today);
+}
 void DinhDangNgay(const Date &d, char out[]) {
     sprintf(out, "%02d/%02d/%04d", d.day, d.month, d.year);
 }
@@ -923,7 +942,7 @@ bool NhapThongTinVT(TREE root, VATTU &x) {
 	gotoxy(65, 16); cout << "ESC  : thoat";
     // xoa vung thong bao ben phai
     clearLine(65, 18, 45);
-
+	
     // ===================== NHAP MA VT =====================
     while (true) {
         len = 0;
@@ -996,7 +1015,8 @@ NHAP_TENVT:
             c = getch();
 
             if (c == 27) { // ESC
-            	XoaThongBaoChung();
+            	clearArea(65,3,45,16);
+                XoaThongBaoChung();
                 return false;
             }
             else if (c == 13) { // ENTER
@@ -1060,8 +1080,8 @@ NHAP_DVT:
             c = getch();
 
             if (c == 27) { // ESC
-            	ThongBaoChung("Da huy nhap vat tu.");
-            	XoaThongBaoChung();
+            	clearArea(65,3,45,16);
+                XoaThongBaoChung();
                 return false;
             }
             else if (c == 13) { // ENTER
@@ -1126,7 +1146,7 @@ NHAP_SLT:
             c = getch();
 
             if (c == 27) { // ESC
-                ThongBaoChung("Da huy nhap vat tu.");
+                clearArea(65,3,45,16);
                 XoaThongBaoChung();
                 return false;
             }
@@ -2429,7 +2449,6 @@ bool ChonVatTuTonKhoPopup(TREE root, char maVTOut[]) {
             }
         }
         else if (c == 27) {
-        	XoaManHinh();
             return false;
         }
     }
@@ -2525,8 +2544,14 @@ bool NhapThongTinHD(DSNHANVIEN ds, NHANVIEN *nv, HOADON &hd) {
     }
 
     // ===================== KIEM TRA NGAY THUC SU =====================
-    while (!KiemTraNgayHopLe(hd.Ngaylap.day, hd.Ngaylap.month, hd.Ngaylap.year)) {
+    while (
+    !KiemTraNgayHopLe(hd.Ngaylap.day, hd.Ngaylap.month, hd.Ngaylap.year) || LaNgayTuongLai(hd.Ngaylap)) {
+    if (!KiemTraNgayHopLe(hd.Ngaylap.day, hd.Ngaylap.month, hd.Ngaylap.year)) {
         ThongBaoHD("Ngay lap khong hop le. Nhap lai Ngay/Thang/Nam.");
+    }
+    else {
+        ThongBaoHD("Ngay lap khong duoc lon hon ngay hien tai.");
+    }
 
         // Nhap lai NGAY
         while (true) {
@@ -2644,7 +2669,7 @@ void VeBangCTHD(const HOADON &hd) {
     gotoxy(2, y + 2 + MAXCTHD + 3); cout << "[F2] Them CT  [F3] Sua CT  [F4] Xoa CT   [F9] Luu  [ESC] Thoat";
 }
 
-bool NhapThongTinCTHD(TREE root, HOADON &hd) {
+bool NhapThongTinCTHD(TREE root, HOADON &hd, NHANVIEN* nv) {
     if (hd.dscthd.n >= MAXCTHD) {
         ThongBaoHD("Hoa don da du 20 chi tiet.");
         return false;
@@ -2706,8 +2731,25 @@ bool NhapThongTinCTHD(TREE root, HOADON &hd) {
                     // F5 da chon duoc ma thi khong cho sua tiep MAVT nua
                     break;
                 } else {
-                    break;
-                }
+				    XoaManHinh();
+				    VeBangCTHD(hd);
+				    VeThongTinHD(nv,hd);
+				    clearArea(formX, 1, HD_FORM_W, HD_FORM_H);
+				    gotoxy(formX, 1);  cout << "THEM CHI TIET HOA DON";
+				    gotoxy(formX, 3);  cout << "| Ma VT    : [__________] |";
+				    gotoxy(formX, 5);  cout << "| VAT      : [__________] |";
+				    gotoxy(formX, 7);  cout << "| So luong : [__________] |";
+				    gotoxy(formX, 9);  cout << "| Don gia  : [__________] |";
+				    gotoxy(formX, 13); cout << "F5  : tim vat tu theo TENVT";
+				    gotoxy(formX, 14); cout << "ENTER: sang o tiep theo";
+				    gotoxy(formX, 15); cout << "ESC : huy thao tac";
+				
+				    len = 0;
+				    ct.MAVT[0] = '\0';
+				    gotoxy(inputX, 3);
+				
+				    continue;
+				}
             }
             
         }
@@ -3088,7 +3130,7 @@ void LapCTHDUI(TREE &root, DSNHANVIEN &dsnv, NHANVIEN *nv, HOADON &hd) {
        	if (c == 0 || c == 224 || c == -32) {
             int f = getch();
             if (f == 60) {
-                NhapThongTinCTHD(root, hd);
+                NhapThongTinCTHD(root,hd,nv);
             }
             else if (f == 61) {
                 SuaCTHDUI(root, hd);
@@ -3304,7 +3346,8 @@ void XoaVatTuUI(TREE &root, int &start, DSNHANVIEN &dsnv) {
 						    else if (start >= nVT) start = ((nVT - 1) / 15) * 15;
 						
 						    InDanhSachVatTuTonKho(root, start);
-						    ThongBaoChung("Da xoa vat tu.");
+						    ThongBaoChung("Da xoa vat tu. ");
+						    break;
 						} else {
 					    	ThongBaoChung("Xoa vat tu that bai.");
 						}
@@ -3826,11 +3869,7 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
                 	ThongBaoChung("Khong tim thay nhan vien.");
                     break;
                 }
-				clearLine(70,5,50);
-				gotoxy(70, 5); cout << "Ho ten: " << ds.nv[vt]->HO << " " << ds.nv[vt]->TEN << "           ";
-				clearLine(70,6,50);
-                gotoxy(70, 6); cout << "Phai  : " << ds.nv[vt]->PHAI << "           ";
-                ThongBaoChung("Nhan Y de xoa, phim khac de huy");
+                ThongBaoChung("Xac nhan co muon xoa khong (Y/N)");
 
                 c = getch();
                 if (c == 'y' || c == 'Y') {
@@ -3858,11 +3897,11 @@ void XoaNV(DSNHANVIEN &ds, int &start) {
 				
 				    InDanhSachNhanVien(ds, start);
 				    ThongBaoChung("Xoa nhan vien thanh cong.");
-				    getch();  
+				    break; 
 				}
-				else {
+				if(c == 'n' || c == 'N') {
 				 	ThongBaoChung("Da huy xoa.");
-				    getch();  
+				    break; 
 				}
 				
 				break;
@@ -4172,34 +4211,28 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
             int key = getch();
 
 		    // F2: Tim hoa don theo SoHD
-		    if (key == 60) {
-		        char soHD[MAX_SOHD + 1];
-		        DSHD hdTim = NULL;
-		        NHANVIEN *nvTim = NULL;
-		
-		        if (NhapSoHDTimKiem(soHD)) {
-		            if (TimHoaDonTheoSoHD(ds, soHD, hdTim, nvTim)) {
-		                InChiTietHoaDon(root, hdTim, nvTim);
-		            }
-		            else {
-		                ThongBaoChung("Khong tim thay So HD.");
-		                getch();
-		            }
-		        }
-		
-		        n = TaoMangHoaDonLoc(ds, tuKhoaLoc, a, MAXTEMP);
-		        if (n == 0) {
-		            selected = 0;
-		            start = 0;
-		        }
-		        else {
-		            if (selected >= n) selected = n - 1;
-		            if (start > selected) start = (selected / pageSize) * pageSize;
-		        }
-		
-		        VeDanhSachHoaDon(a, n, start, selected, tuKhoaLoc);
-		        continue;
-		    }
+		    // F2: Tim hoa don theo SoHD
+			if (key == 60) {
+			    char soHD[MAX_SOHD + 1];
+			    DSHD hdTim = NULL;
+			    NHANVIEN *nvTim = NULL;
+			
+			    while (true) {
+			        if (!NhapSoHDTimKiem(soHD)) {
+			            break; // ESC trong form tim
+			        }
+			
+			        if (TimHoaDonTheoSoHD(ds, soHD, hdTim, nvTim)) {
+			            InChiTietHoaDon(root, hdTim, nvTim);
+			            break;
+			        }
+			
+			        ThongBaoChung("Khong tim thay So HD.");
+			    }
+			
+			    VeDanhSachHoaDon(a, n, start, selected, tuKhoaLoc);
+			    continue;
+			}
 		
 		    if (n <= 0) continue;
 		
@@ -4279,9 +4312,6 @@ void InHoaDonUI(TREE root, DSNHANVIEN ds) {
             }
         }
     }
-}
-int DateToInt(const Date &d) {
-    return d.year * 10000 + d.month * 100 + d.day;
 }
 
 bool TrongKhoangNgay(const Date &d, const Date &tu, const Date &den) {
