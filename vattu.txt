@@ -1,5 +1,4 @@
-VT00102301|V0t0t1023|cm2|0
-VT01|Pin|cuc|5000
+VT01|But|cuc|5000
 VT02|Cuc Sac|chiec|5
 VT03|Sach|quyen|10000
 VT04|Ghe|chiec|5000
